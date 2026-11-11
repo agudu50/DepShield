@@ -176,18 +176,18 @@ export default function GitHubLoginGate({ onLoginSuccess, onSkipToWorkspace }: G
               <Shield size={28} />
             </div>
             <div>
-              <span className="eyebrow">Security Intelligence Platform</span>
+              <span className="eyebrow">Powered by Bifrost by Maxim AI</span>
               <h1>DepShield AI</h1>
             </div>
           </div>
 
           <h2 className="login-tagline">
-            Autonomous Dependency Security & Real-Time Audit Telemetry
+            Build an Agent That Pentests a Target on Its Own
           </h2>
           <p className="login-description">
-            Audit projects via the <strong>Web App</strong> or the <strong>Developer CLI</strong>.
-            DepShield strictly inspects dependency manifests, queries deterministic OSV.dev feeds,
-            and streams real-time telemetry so you can verify <strong>zero data exfiltration</strong>.
+            Powered by <strong>Bifrost by Maxim AI</strong> as the central intelligent gateway.
+            DepShield automatically targets your projects, probes for security flaws on its own,
+            and writes clear, safe fix plans with <strong>zero data theft</strong>.
           </p>
 
           {/* Feature Highlights Grid */}

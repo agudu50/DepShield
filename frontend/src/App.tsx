@@ -241,7 +241,7 @@ export default function App() {
             <Shield size={20} />
           </div>
           <div>
-            <p className="eyebrow">Security Intelligence</p>
+            <p className="eyebrow">Bifrost by Maxim AI</p>
             <h1>DepShield AI</h1>
           </div>
         </div>

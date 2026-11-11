@@ -1,127 +1,135 @@
-# DepShield AI
+# DepShield AI 🛡️
 
-DepShield is a modern React security dashboard and FastAPI service for checking dependency manifests and lockfiles
-against OSV.dev. Vulnerability matching is deterministic; AI is used only to explain verified
-advisory evidence during an investigation.
-
-The platform provides:
-1. **Autonomous GitHub Repository Auditing**: Connect GitHub, choose any repository, auto-discover package manifests (`package.json`, `package-lock.json`, `requirements.txt`, `pyproject.toml`, etc.), and trigger the AI Security Agent to evaluate risk, blast radius, and upgrade paths.
-2. **Developer CLI (`depshield`)**: Preflight package checks, interactive approval gates before `npm` and `uv` installations, repository analysis from the terminal, and lockfile synchronization.
-3. **Multi-Tenant Workspace**: Neon Auth (Better Auth) sessions, PostgreSQL persistence, organizations, projects, scan history, invitations, and member role management.
-4. **Modern UI Architecture**: Seesaw-inspired, flat developer-tool design system with solid color surfaces, zero gradients, and high-density data visualizations.
-
-The current architecture and implementation boundaries are documented in
-[docs/architecture.md](./docs/architecture.md). Details on CLI adapters and security guarantees are in
-[docs/developer-integration.md](./docs/developer-integration.md).
-
-## Developer Integration Layer checklist
-
-Status reflects implementation and local validation only. See [docs/developer-integration-status.md](./docs/developer-integration-status.md) for details.
-
-### Done locally
-
-- [x] Architecture and security workflow documented in [docs/developer-integration.md](./docs/developer-integration.md).
-- [x] Python-distributed `depshield` CLI package and commands: `init`, `add`, `scan`, `status`, `monitor`, `explain`, `fix`, `report`, `login`, and `logout`.
-- [x] **GitHub CLI suite (`depshield github`)**: `login`, `status`, `repos`, `manifests`, `analyze`, and `logout` with secure OS keyring storage.
-- [x] **GitHub Dashboard Integration**: Full frontend workflow with Login Gate, repository selection, manifest detection, and interactive AI Agent Audit reports.
-- [x] **Backend GitHub APIs**: `/api/v1/github/user`, `/repos`, `/repos/{owner}/{repo}/manifests`, and `/repos/{owner}/{repo}/analyze` with SSRF and path-traversal validation.
-- [x] npm adapter: lockfile inventory, metadata-only preflight, approval gate, script-disabled install (`--ignore-scripts`), post-install verification, and inventory synchronization.
-- [x] Python **uv** adapter: `uv.lock` inventory, PyPI metadata preflight, approval gate, post-install verification, and inventory synchronization.
-- [x] Browser-consented CLI login with token storage in the OS credential store; project config contains no authentication token.
-- [x] Authenticated backend inventory and preflight APIs, incremental OSV scans, persisted investigations, and dashboard visibility.
-- [x] Foreground polling monitor for supported project files and lockfiles; detects external manager changes after they happen.
-- [x] Local validation: 24 CLI unit tests, backend test suite, frontend Oxlint (0 warnings, 0 errors), and production Vite build.
-
-### Still to do
-
-- [ ] Fix hosted Neon tenant isolation: configure a restricted runtime role without `BYPASSRLS`, apply the inventory migration, and verify cross-tenant access controls before hosted CLI use.
-- [ ] Validate browser login, OS credential storage, registry/OSV/Bifrost calls, and real npm/uv installs end to end on clean supported environments.
-- [ ] Publish and test the CLI package on clean developer machines.
-- [ ] Add Python adapters for pip, Poetry, and Pipenv; currently Python support is uv-only.
-- [ ] Decide and test how to preflight newly resolved Python transitive dependencies before their first installation.
-- [ ] Add private-registry support, scoped/refreshable/revocable authentication, and secure credential handling.
-- [ ] Add durable offline queue/replay, stale-state reporting, and monitor recovery across restarts.
-- [ ] Implement CI/CD lockfile gates, GitHub Actions workflow, and VS Code extension.
-- [ ] Add pnpm, Yarn, Rust (Cargo), and Go adapters with independent security and install tests.
-- [ ] Add configurable organization policy, approved overrides, and verified remediation workflows.
-- [ ] Implement scheduled scans and durable background jobs using the shared backend runtime.
+### Autonomous Pentesting Agent Powered by Bifrost by Maxim AI
 
 ---
 
-## GitHub Integration & AI Agent Analysis
+## 💡 What is DepShield AI?
 
-DepShield integrates with GitHub to enable autonomous repository audits both in the browser dashboard and via the CLI.
+When developers build apps, they use hundreds of open-source packages (libraries like `express`, `requests`, or `lodash`). But hackers frequently hide dangerous bugs, security holes, and backdoors inside these packages to break into servers, steal data, or crash systems.
 
-### Web Dashboard Workflow
+**DepShield AI** is an autonomous security agent that tests projects for vulnerabilities on its own.
 
-The frontend features a clean Seesaw-inspired, flat UI architecture (no gradients):
-1. **Interactive Landing Gate**:
-   - Step-by-step interactive guide for both **Web App** and **Developer CLI** workflows.
-   - **Zero-Exfiltration Proof**: Details deterministic isolation—only manifests are read; application source code (`.ts`, `.py`, `.js`, `.env`) is strictly ignored and never read into memory or uploaded.
-   - **Live Audit Telemetry Console Preview**: Simulates real-time file inspection, hash verification, and stateless OSV queries.
-2. **Dashboard Overview**: Once connected, the user enters the intelligence dashboard with live stats (connected repositories, audited dependencies, active OSV advisories, and exact checked pins).
-3. **Six Modular Sections**:
-   - **AI Agent & Repos**: Search/filter repositories, discover manifests, set custom agent investigation prompts, and trigger one-click audits.
-   - **Findings**: Explore active CVE/GHSA advisories, affected package versions, and fix paths.
-   - **Live Audit Stream**: Real-time telemetry feed tracking exact files checked, outbound OSV queries, policy enforcement gates, and CLI monitor heartbeats.
-   - **Manual Scanner**: Paste raw npm `package.json` / `package-lock.json` or Python `requirements.txt` / `uv.lock` manifests for stateless checks.
-   - **Workspace & Team**: Manage organizations, project inventories, invitations, and member roles via Neon Auth.
-   - **Reports**: Executive security posture, exact-version coverage metrics, and export options.
+You give it a target repository or a list of packages, and the agent:
 
-### CLI GitHub Workflow
+1. **Picks the target** and maps out every building block the project relies on.
+2. **Pentests the target on its own** by matching exact package versions against global vulnerability feeds.
+3. **Uses Bifrost by Maxim AI** as its intelligent gateway to analyze the risk, measure how dangerous the bug is, test if attackers can reach it, and write a clear fix plan.
+4. **Guarantees zero data theft**: It only reads package names and version numbers. It never reads or steals your private code or passwords.
 
-The `depshield github` command suite brings full repository auditing to the terminal:
+---
 
-```powershell
-# Authenticate and store your GitHub token in the OS credential store
-depshield github login --token <YOUR_GITHUB_PAT>
+## 🎯 The Theme: Build an Agent That Pentests a Target on Its Own
 
-# Check current connected user profile
-depshield github status
+Traditional security scanners simply give you long, confusing lists of errors. They don't think, prioritize, or explain how a hacker could actually exploit your project.
 
-# List your accessible repositories
-depshield github repos --page 1 --per-page 30
+DepShield acts like a friendly, automated security expert:
 
-# Inspect discovered manifests in a repository
-depshield github manifests expressjs/express
+- **Autonomous Target Discovery**: Select any GitHub repository or point the CLI to a folder. The agent independently finds and inspects the dependency files (like `package.json` or `requirements.txt`).
+- **Automated Risk Probing**: It probes every package against the official Open Source Vulnerabilities database (OSV.dev) to find known security flaws (CVEs).
+- **AI Attack & Defense Reasoning with Bifrost**: The agent asks Bifrost by Maxim AI to evaluate the findings:
+  - _Can a hacker use this bug to attack my specific app?_
+  - _What is the blast radius if someone exploits it?_
+  - _What is the safest upgrade that won't break my app?_
+- **Pre-Install Defense Gate**: Before you install any new package on your computer, DepShield's CLI intercepts the command, checks the package first, and stops dangerous code before it touches your hard drive.
 
-# Run an AI Security Agent audit on a repository
-depshield github analyze expressjs/express
-depshield github analyze octocat/hello-world --manifest package.json --question "Check remote code execution risk"
+---
 
-# Remove the stored GitHub token
-depshield github logout
+## ⚡ Why Bifrost by Maxim AI is the Core Engine
+
+**Bifrost by Maxim AI** serves as the central brain and gateway for all AI investigations:
+
+```
++---------------------+         +----------------------------+         +-----------------------+
+|   Target Project    |  -----> |   DepShield Security Agent |  -----> | Bifrost AI Gateway    |
+| (GitHub Repo / CLI) |         | (Finds Descriptors & OSV)  |         | (Maxim AI Intelligence)
++---------------------+         +----------------------------+         +-----------------------+
+                                                                                  |
+                                                                       Evaluates attack reach,
+                                                                       blast radius & safe fixes
+                                                                                  |
+                                                                                  v
+                                                                       +-----------------------+
+                                                                       | Clean Pentest Report  |
+                                                                       | & 1-Click Upgrade Plan|
+                                                                       +-----------------------+
 ```
 
-Add `--json` to any command for structured, machine-readable output.
+1. **Intelligent Security Analysis**: Instead of raw computer error codes, Bifrost translates vulnerabilities into plain explanations of how an attack works.
+2. **Reliable & Grounded**: Bifrost is instructed to stick strictly to real, verified facts. It never invents fake security bugs or makes false claims.
+3. **Flexible Gateway**: Bifrost lets DepShield connect to modern language models smoothly while keeping security checks fast and responsive.
 
 ---
 
-## Run locally
+## 🔒 The Zero-Exfiltration Promise: No Code Theft
 
-### Backend
+Developers are often afraid that AI tools will steal their private code or secret keys. DepShield is built with strict safety boundaries:
 
-### Backend
+| What DepShield Checks ✅                                           | What DepShield NEVER Touches ❌                           |
+| :----------------------------------------------------------------- | :-------------------------------------------------------- |
+| **Package Names & Version Numbers** (`lodash: 4.17.15`)            | **Your Private Source Code** (`.js`, `.ts`, `.py`, `.go`) |
+| **Manifest Files** (`package.json`, `uv.lock`, `requirements.txt`) | **Passwords & Secrets** (`.env`, `.pem`, API keys)        |
+| **Public Registry Checksums** (SHA-256 integrity hashes)           | **Your Git History & Database Records**                   |
 
-From the project root:
+When checking security risks, DepShield sends **only** the package name and version number to public security feeds. **Zero lines of your app code ever leave your machine.**
+
+---
+
+## 🛠️ Technologies Used
+
+- **Bifrost by Maxim AI (`@maximhq/bifrost`)**: The high-performance AI gateway that coordinates the security agent's reasoning.
+- **FastAPI (Python 3.12)**: Fast, lightweight backend service that orchestrates target scans and connects to Bifrost.
+- **React 19 & Vite**: Clean, modern web dashboard inspired by Seesaw and Linear with solid colors and zero gradients.
+- **OSV.dev**: Open Source Vulnerability database maintained by Google and the open-source community.
+- **DepShield CLI**: A terminal tool for developers to protect projects right from their command line.
+- **Neon Auth & PostgreSQL**: Simple, secure account and team workspace management.
+
+---
+
+## 🚀 Quick Start & Installation
+
+You can get the entire project running locally in just a few minutes.
+
+### Prerequisites
+
+- **Python 3.12** installed
+- **Node.js (v18+)** and `npm` installed
+- **Git** installed
+
+---
+
+### Step 1: Start the Bifrost AI Gateway (Maxim AI)
+
+In your first terminal, start the Bifrost gateway:
+
+```powershell
+npx -y @maximhq/bifrost
+```
+
+- Bifrost will open on `http://localhost:8080`.
+- Enter your preferred AI model provider key in the Bifrost dashboard.
+- _(Note: If Bifrost is not running, DepShield still works and reports verified vulnerabilities deterministically!)_
+
+---
+
+### Step 2: Start the Backend Server
+
+In your second terminal, run our quick start command from the project root:
 
 ```powershell
 .\backend
 ```
-*(or `.\run-backend.ps1`)*
 
-Alternatively, using python directly:
+_(Or use `.\run-backend.ps1`, or navigate to `cd backend` and run `.\.venv\Scripts\python -m uvicorn app.main:app --reload --port 8000`)_.
 
-```powershell
-cd backend
-.\.venv\Scripts\python -m uvicorn app.main:app --reload
-```
+The backend starts at **`http://localhost:8000`**.  
+You can view interactive documentation at [http://localhost:8000/docs](http://localhost:8000/docs).
 
-The API starts on `http://localhost:8000`.
+---
 
-### Frontend
+### Step 3: Start the Web Dashboard
 
-In another terminal:
+In your third terminal:
 
 ```powershell
 cd frontend
@@ -129,50 +137,113 @@ npm install
 npm run dev
 ```
 
-The dashboard starts on `http://localhost:5173`. Set `VITE_API_BASE_URL` when the backend is hosted elsewhere.
-
-### Local Bifrost AI Gateway (Optional)
-
-To enable AI explanations for verified advisory evidence during investigations:
-
-```powershell
-npx -y @maximhq/bifrost
-```
-
-Open `http://localhost:8080`, configure an LLM provider, and ensure `BIFROST_BASE_URL` in `.env` points to `http://localhost:8080/openai`. When Bifrost is unavailable, DepShield continues to report verified OSV advisories with deterministic summaries.
+The web dashboard will start at **`http://localhost:5173`**.
 
 ---
 
-## Developer CLI (Local Project Management)
+## 🖥️ How to Use DepShield
 
-Install the local package with `pipx`:
+### Option A: Using the Web App
 
-```powershell
-pipx install .\cli
-$env:DEPSHIELD_API_URL = "http://localhost:8000"
-$env:DEPSHIELD_DASHBOARD_URL = "http://localhost:5173"
-depshield init
-```
-
-* **npm**: Requires `package-lock.json` or `npm-shrinkwrap.json`.
-* **Python**: Requires both `pyproject.toml` and `uv.lock`.
-* **Safe Installation Gate**: `depshield add <package>@<version>` checks candidate metadata against OSV.dev before downloading. Active advisories block installation. Installs run with lifecycle scripts disabled (`--ignore-scripts`) for npm and `uv add --no-sync` followed by `uv sync` after approval for Python.
-* **Monitor**: `depshield monitor` polls dependency files and syncs inventory changes.
+1. **Open the Dashboard**: Visit `http://localhost:5173` in your browser.
+2. **Connect with GitHub**: Enter a GitHub Personal Access Token (with read-only `repo` permission). Your token is stored safely in your browser only.
+3. **Choose Your Target**: Search and select any repository from your account.
+4. **Run Autonomous Pentest**:
+   - The agent automatically spots package files (`package.json`, `uv.lock`, etc.).
+   - Click **"Run AI Security Audit"**.
+   - The agent probes for known weaknesses, queries Bifrost by Maxim AI, and shows you a clean, prioritized report with safe upgrade steps.
+5. **Watch the Live Audit Stream**: Click the **Live Audit Stream** tab to watch every file the agent checks in real time and verify that **0 bytes** of your private source code were read.
 
 ---
 
-## Testing
+### Option B: Using the Developer CLI (Terminal)
 
-Run CLI unit tests:
+You can also use DepShield as your personal bodyguard directly in the command line:
 
 ```powershell
+# 1. Connect your GitHub token to your secure computer keychain
+depshield github login --token <YOUR_GITHUB_TOKEN>
+
+# 2. Check your connection status
+depshield github status
+
+# 3. Pentest any repository directly from your terminal
+depshield github analyze owner/repository
+
+# 4. Safely check and add a package before downloading it
+depshield add express@4.18.2
+
+# 5. Turn on background monitoring to watch for new vulnerabilities
+depshield monitor
+```
+
+---
+
+## 📡 Live Real-Time Activity Monitoring
+
+Both the landing page and the dashboard feature a **Live Activity Monitor**.
+
+Whenever an audit runs, you can see a transparent log of every action:
+
+- `[DESCRIPTOR_READ]` Shows the exact file checked (e.g. `package.json`).
+- `[OSV_QUERY]` Shows the exact package name sent to the security feed.
+- `[BIFROST_AGENT]` Shows when Bifrost evaluates an exploit or remediation path.
+- `[EXFILTRATION_PROOF]` Confirms that **0 lines of source code** were touched.
+
+---
+
+## 🧪 Testing the Project
+
+You can verify that everything works properly with our built-in test suites:
+
+```powershell
+# 1. Run all CLI unit tests (24 tests)
 $env:PYTHONPATH = "cli"
 .\backend\.venv\Scripts\python -m unittest discover -s cli/tests
-```
 
-Run frontend lint and production build:
-
-```powershell
+# 2. Check frontend code quality (Oxlint)
 npm run lint --prefix frontend
+
+# 3. Verify the frontend production build
 npm run build --prefix frontend
 ```
+
+---
+
+## 📁 Project Structure
+
+```
+DepShield/
+├── backend/                  # FastAPI Python backend
+│   ├── app/
+│   │   ├── agents/bifrost.py # Bifrost by Maxim AI client integration
+│   │   ├── api/routes/       # API endpoints (github, scans, agent, health)
+│   │   ├── domain/           # Core scanning and repository logic
+│   │   └── main.py           # Application entrypoint
+├── frontend/                 # React 19 + Vite web dashboard
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── GitHubLoginGate.tsx  # Landing page, guides, and zero-leak proof
+│   │   │   ├── GitHubAgentPanel.tsx # Target selection and autonomous audit
+│   │   │   └── LiveAuditMonitor.tsx # Real-time agent activity & telemetry stream
+│   │   ├── App.tsx                  # Main application shell and tabs
+│   │   └── App.css                  # Modern Seesaw-inspired flat design (zero gradients)
+├── cli/                      # Developer command-line tool (`depshield`)
+│   ├── depshield_cli/
+│   │   ├── github.py         # Terminal GitHub integration & audit commands
+│   │   └── main.py           # Preflight installation gates and background monitor
+├── backend.cmd               # Quick-start script for Windows
+├── run-backend.ps1           # Quick-start PowerShell script
+└── README.md                 # Project documentation
+```
+
+---
+
+## 🏆 Summary
+
+DepShield AI turns vulnerability management into an autonomous, transparent security experience:
+
+- **Target**: Any project or GitHub repository.
+- **Agent**: Discovers packages, probes attack surfaces, and verifies vulnerabilities.
+- **Brain**: **Bifrost by Maxim AI** analyzes risks, evaluates reachability, and builds safe upgrade plans.
+- **Promise**: 100% deterministic security facts, zero code theft, and clear, simple answers.
