@@ -97,12 +97,19 @@ Add `--json` to any command for structured, machine-readable output.
 
 ### Backend
 
-Use Python 3.12 for the backend environment:
+### Backend
+
+From the project root:
+
+```powershell
+.\backend
+```
+*(or `.\run-backend.ps1`)*
+
+Alternatively, using python directly:
 
 ```powershell
 cd backend
-py -3.12 -m venv .venv
-.\.venv\Scripts\python -m pip install -r requirements.txt
 .\.venv\Scripts\python -m uvicorn app.main:app --reload
 ```
 
