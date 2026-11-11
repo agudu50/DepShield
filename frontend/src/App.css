@@ -1,10 +1,8 @@
 .app-shell {
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, rgba(96, 165, 250, 0.18), transparent 25%),
-    linear-gradient(180deg, #071422 0%, #0f172a 30%, #111827 100%);
-  color: #e5eefb;
-  padding: 32px 24px 48px;
+  background: #090d16;
+  color: #e2e8f0;
+  padding: 24px 20px 48px;
 }
 
 .topbar {
@@ -14,11 +12,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  padding: 18px 22px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 20px;
-  background: rgba(15, 23, 42, 0.7);
-  backdrop-filter: blur(12px);
+  padding: 14px 20px;
+  border: 1px solid #1e293b;
+  border-radius: 14px;
+  background: #0f172a;
 }
 
 .brand-wrap {
@@ -28,13 +25,15 @@
 }
 
 .brand-mark {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, #22c55e, #06b6d4);
-  box-shadow: 0 10px 28px rgba(34, 197, 94, 0.35);
+  background: #2563eb;
+  color: #ffffff;
+  border: 1px solid #3b82f6;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
 }
 
 .eyebrow {
@@ -64,37 +63,45 @@
 
 .primary-button,
 .secondary-button {
-  border: none;
-  border-radius: 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
   font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: transform 0.2s ease, opacity 0.2s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .primary-button {
-  background: linear-gradient(135deg, #22c55e, #06b6d4);
-  color: #03131a;
-  font-weight: 700;
-  padding: 0.8rem 1.2rem;
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #3b82f6;
+  padding: 0.65rem 1.15rem;
+}
+
+.primary-button:hover {
+  background: #1d4ed8;
+  border-color: #2563eb;
 }
 
 .secondary-button {
-  background: rgba(148, 163, 184, 0.1);
+  background: #1e293b;
   color: #e2e8f0;
-  border: 1px solid rgba(148, 163, 184, 0.12);
-  padding: 0.8rem 1.1rem;
+  border-color: #334155;
+  padding: 0.65rem 1.1rem;
+}
+
+.secondary-button:hover {
+  background: #334155;
+  border-color: #475569;
 }
 
 .small-button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 0.6rem 0.9rem;
-}
-
-.primary-button:hover,
-.secondary-button:hover {
-  transform: translateY(-1px);
+  padding: 0.5rem 0.85rem;
+  font-size: 0.85rem;
 }
 
 .main-panel {
@@ -156,9 +163,9 @@
 }
 
 .hero-card {
-  border-radius: 24px;
-  background: linear-gradient(180deg, rgba(15, 118, 110, 0.18), rgba(30, 41, 59, 0.95));
-  border: 1px solid rgba(45, 212, 191, 0.2);
+  border-radius: 14px;
+  background: #111827;
+  border: 1px solid #1e293b;
   padding: 22px;
 }
 
@@ -175,21 +182,20 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #34d399;
-  box-shadow: 0 0 18px rgba(52, 211, 153, 0.9);
+  background: #10b981;
 }
 
 .status-dot.idle {
-  background: #94a3b8;
-  box-shadow: none;
+  background: #64748b;
 }
 
 .risk-ring {
-  width: 170px;
-  height: 170px;
+  width: 150px;
+  height: 150px;
   margin: 18px auto;
   border-radius: 50%;
-  background: conic-gradient(#34d399 0 54%, rgba(148, 163, 184, 0.12) 54% 100%);
+  background: #111827;
+  border: 4px solid #10b981;
   display: grid;
   place-items: center;
 }
@@ -748,13 +754,12 @@
    ========================================================================== */
 
 .github-agent-container {
-  margin: 32px 0;
-  padding: 32px;
-  background: rgba(15, 23, 42, 0.75);
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  border-radius: 24px;
-  box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.5), 0 0 30px rgba(56, 189, 248, 0.08);
-  backdrop-filter: blur(16px);
+  margin: 24px 0;
+  padding: 28px;
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 }
 
 .section-head {
@@ -833,11 +838,11 @@
 }
 
 .gh-icon-badge {
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #1e293b, #0f172a);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  background: #1e293b;
+  border: 1px solid #334155;
   display: grid;
   place-items: center;
   color: #f8fafc;
@@ -1100,6 +1105,7 @@
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -1383,9 +1389,10 @@
 
 /* Agent Summary Box */
 .agent-summary-box {
-  background: linear-gradient(135deg, rgba(30, 27, 75, 0.6), rgba(15, 23, 42, 0.8));
-  border: 1px solid rgba(168, 85, 247, 0.3);
-  border-radius: 14px;
+  background: #111827;
+  border: 1px solid #1e293b;
+  border-left: 4px solid #6366f1;
+  border-radius: 12px;
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -1600,14 +1607,15 @@
 }
 
 .brand-mark-lg {
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, #22c55e, #06b6d4);
-  color: #03131a;
-  box-shadow: 0 10px 30px rgba(34, 197, 94, 0.4);
+  background: #2563eb;
+  color: #ffffff;
+  border: 1px solid #3b82f6;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
 }
 
 .login-brand h1 {
@@ -1622,9 +1630,7 @@
   font-weight: 800;
   line-height: 1.25;
   margin: 0;
-  background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #38bdf8 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #f8fafc;
 }
 
 .login-description {
@@ -1644,18 +1650,19 @@
 .feature-item {
   display: flex;
   gap: 14px;
-  background: rgba(15, 23, 42, 0.5);
-  border: 1px solid rgba(148, 163, 184, 0.12);
-  border-radius: 14px;
+  background: #111827;
+  border: 1px solid #1e293b;
+  border-radius: 12px;
   padding: 16px;
 }
 
 .feature-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  background: rgba(56, 189, 248, 0.12);
-  color: #38bdf8;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #172554;
+  color: #60a5fa;
+  border: 1px solid #1e40af;
   display: grid;
   place-items: center;
   flex-shrink: 0;
@@ -1680,12 +1687,11 @@
 }
 
 .login-card {
-  background: rgba(15, 23, 42, 0.85);
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  border-radius: 24px;
+  background: #111827;
+  border: 1px solid #1e293b;
+  border-radius: 16px;
   padding: 36px 32px;
-  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.6), 0 0 40px rgba(56, 189, 248, 0.1);
-  backdrop-filter: blur(20px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
 }
 
 .login-card-header {
@@ -1694,16 +1700,16 @@
 }
 
 .gh-icon-bubble {
-  width: 58px;
-  height: 58px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #1e293b, #0f172a);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #1e293b;
+  border: 1px solid #334155;
   color: #f8fafc;
   display: grid;
   place-items: center;
   margin: 0 auto 16px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
 .login-card-header h3 {
