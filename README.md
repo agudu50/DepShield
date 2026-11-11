@@ -1,6 +1,6 @@
 # DepShield AI 🛡️
 
-### Autonomous Pentesting Agent Powered by Bifrost by Maxim AI
+### An Agent Powered by Bifrost by Maxim AI
 
 ---
 

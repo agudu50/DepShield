@@ -222,12 +222,10 @@ export default function App() {
   // Screen 1: NOT LOGGED IN -> Show Clean Login Gate
   if (!user && !showWorkspaceOnly) {
     return (
-      <div className="app-shell">
-        <GitHubLoginGate
-          onLoginSuccess={handleLoginSuccess}
-          onSkipToWorkspace={() => setShowWorkspaceOnly(true)}
-        />
-      </div>
+      <GitHubLoginGate
+        onLoginSuccess={handleLoginSuccess}
+        onSkipToWorkspace={() => setShowWorkspaceOnly(true)}
+      />
     )
   }
 
