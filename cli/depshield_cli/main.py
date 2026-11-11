@@ -13,6 +13,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
+import httpx
+
 from depshield_cli.adapters.common import PackageCandidate
 from depshield_cli.adapters.npm import (
     detect as detect_npm,
@@ -30,6 +32,7 @@ from depshield_cli.adapters.uv import (
 from depshield_cli.api import ApiClient, ApiError
 from depshield_cli.auth import delete_token, get_token, receive_browser_token, store_token
 from depshield_cli.config import ProjectConfig, find_config, load_config, save_config
+from depshield_cli.github import GitHubCliClient
 
 DEFAULT_API_URL = "http://localhost:8000"
 DEFAULT_DASHBOARD_URL = "http://localhost:5173"
@@ -73,7 +76,33 @@ def build_parser() -> argparse.ArgumentParser:
 
     commands.add_parser("report", help="Show the latest saved scan report")
     commands.add_parser("logout", help="Remove this CLI token from the OS credential store")
-    for subparser in commands.choices.values():
+
+    gh_parser = commands.add_parser("github", help="Connect and analyze GitHub repositories with the DepShield Agent")
+    gh_commands = gh_parser.add_subparsers(dest="github_command", required=True)
+
+    gh_login = gh_commands.add_parser("login", help="Store a GitHub Personal Access Token")
+    gh_login.add_argument("--token", help="GitHub Personal Access Token")
+
+    gh_commands.add_parser("status", help="Show connected GitHub user profile")
+
+    gh_repos = gh_commands.add_parser("repos", help="List accessible GitHub repositories")
+    gh_repos.add_argument("--page", type=int, default=1)
+    gh_repos.add_argument("--per-page", type=int, default=30)
+
+    gh_manifests = gh_commands.add_parser("manifests", help="Detect manifest files in a repository")
+    gh_manifests.add_argument("repo", help="Repository in 'owner/repo' format")
+    gh_manifests.add_argument("--ref", help="Branch or commit ref")
+
+    gh_analyze = gh_commands.add_parser("analyze", help="Run DepShield Security Agent analysis on a repository")
+    gh_analyze.add_argument("repo", help="Repository in 'owner/repo' format")
+    gh_analyze.add_argument("--manifest", help="Path to manifest or lockfile (e.g. package.json)")
+    gh_analyze.add_argument("--ref", help="Branch or commit ref")
+    gh_analyze.add_argument("--question", help="Custom agent investigation prompt")
+    gh_analyze.add_argument("--api-url", default=os.environ.get("DEPSHIELD_API_URL", DEFAULT_API_URL))
+
+    gh_commands.add_parser("logout", help="Remove stored GitHub token")
+
+    for subparser in list(commands.choices.values()) + list(gh_commands.choices.values()):
         subparser.add_argument("--json", action="store_true", default=argparse.SUPPRESS)
     return parser
 
@@ -95,6 +124,8 @@ def _dispatch(args: argparse.Namespace) -> int:
         return _init(args)
     if args.command == "logout":
         return _logout(args.json)
+    if args.command == "github":
+        return _dispatch_github(args)
     if args.command == "fix":
         _output(
             {
@@ -122,6 +153,268 @@ def _dispatch(args: argparse.Namespace) -> int:
     if args.command == "report":
         return _report(config, args.json)
     raise ValueError(f"Unknown command: {args.command}")
+
+
+def _dispatch_github(args: argparse.Namespace) -> int:
+    gh_cmd = args.github_command
+    if gh_cmd == "login":
+        return _github_login(args.token, args.json)
+    if gh_cmd == "status":
+        return _github_status(args.json)
+    if gh_cmd == "logout":
+        return _github_logout(args.json)
+    if gh_cmd == "repos":
+        return _github_repos(args.page, args.per_page, args.json)
+    if gh_cmd == "manifests":
+        return _github_manifests(args.repo, args.ref, args.json)
+    if gh_cmd == "analyze":
+        return _github_analyze(
+            args.repo,
+            args.manifest,
+            args.ref,
+            args.question,
+            args.api_url,
+            args.json,
+        )
+    raise ValueError(f"Unknown github command: {gh_cmd}")
+
+
+def _github_login(token: str | None, as_json: bool) -> int:
+    if not token:
+        try:
+            token = input("Enter your GitHub Personal Access Token (classic or fine-grained): ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print("\nAborted.")
+            return 1
+    if not token:
+        _error("A non-empty GitHub token is required", as_json)
+        return 2
+    try:
+        client = GitHubCliClient(token)
+        user = client.get_user()
+        GitHubCliClient.store_token(token)
+        _output(
+            {
+                "status": "connected",
+                "login": user.login,
+                "name": user.name or user.login,
+                "public_repos": user.public_repos,
+                "message": f"Successfully connected GitHub account @{user.login}.",
+            },
+            as_json,
+        )
+        return 0
+    except Exception as exc:
+        _error(f"Failed to authenticate with GitHub: {exc}", as_json)
+        return 2
+
+
+def _github_status(as_json: bool) -> int:
+    client = GitHubCliClient()
+    if not client.token:
+        _output(
+            {
+                "status": "not_connected",
+                "message": "No GitHub token stored. Run 'depshield github login' to connect.",
+            },
+            as_json,
+        )
+        return 1
+    try:
+        user = client.get_user()
+        _output(
+            {
+                "status": "connected",
+                "login": user.login,
+                "name": user.name or user.login,
+                "avatar_url": user.avatar_url,
+                "public_repos": user.public_repos,
+                "profile_url": user.html_url,
+            },
+            as_json,
+        )
+        return 0
+    except Exception as exc:
+        _error(f"Failed to verify GitHub connection: {exc}", as_json)
+        return 2
+
+
+def _github_logout(as_json: bool) -> int:
+    GitHubCliClient.delete_stored_token()
+    _output({"status": "logged_out", "message": "GitHub access token removed from credential store."}, as_json)
+    return 0
+
+
+def _github_repos(page: int, per_page: int, as_json: bool) -> int:
+    client = GitHubCliClient()
+    try:
+        repos = client.list_repositories(page=page, per_page=per_page)
+        if as_json:
+            _output(
+                [
+                    {
+                        "full_name": r.full_name,
+                        "private": r.private,
+                        "default_branch": r.default_branch,
+                        "language": r.language,
+                        "stargazers_count": r.stargazers_count,
+                        "updated_at": r.updated_at,
+                    }
+                    for r in repos
+                ],
+                json_output=True,
+            )
+        else:
+            print(f"\n--- GitHub Repositories (Page {page}) ---")
+            for r in repos:
+                vis = "private" if r.private else "public"
+                lang = f"[{r.language}]" if r.language else ""
+                stars = f"★ {r.stargazers_count}" if r.stargazers_count else ""
+                print(f" • {r.full_name} ({vis}) {lang} {stars}")
+            print("\nRun 'depshield github analyze <owner/repo>' to analyze a project with the AI Agent.\n")
+        return 0
+    except Exception as exc:
+        _error(f"Failed to list GitHub repositories: {exc}", as_json)
+        return 2
+
+
+def _github_manifests(repo: str, ref: str | None, as_json: bool) -> int:
+    parts = repo.strip().split("/")
+    if len(parts) != 2:
+        _error("Repository must be in 'owner/repo' format (e.g. facebook/react)", as_json)
+        return 2
+    owner, repo_name = parts
+    client = GitHubCliClient()
+    try:
+        manifests = client.detect_manifests(owner, repo_name, ref=ref)
+        if as_json:
+            _output(
+                [
+                    {
+                        "name": m.name,
+                        "path": m.path,
+                        "ecosystem": m.ecosystem,
+                        "manifest_type": m.manifest_type,
+                        "size": m.size,
+                    }
+                    for m in manifests
+                ],
+                json_output=True,
+            )
+        else:
+            print(f"\nDiscovered manifests in {owner}/{repo_name}:")
+            for m in manifests:
+                print(f" • {m.path} ({m.ecosystem} {m.manifest_type}) [{m.size} bytes]")
+        return 0
+    except Exception as exc:
+        _error(f"Failed to discover manifests in {repo}: {exc}", as_json)
+        return 2
+
+
+def _github_analyze(
+    repo: str,
+    manifest_path: str | None,
+    ref: str | None,
+    question: str | None,
+    api_url: str,
+    as_json: bool,
+) -> int:
+    parts = repo.strip().split("/")
+    if len(parts) != 2:
+        _error("Repository must be in 'owner/repo' format (e.g. expressjs/express)", as_json)
+        return 2
+    owner, repo_name = parts
+
+    client = GitHubCliClient()
+    if not client.token:
+        _error("GitHub token not found. Run 'depshield github login' first.", as_json)
+        return 2
+
+    if not manifest_path:
+        try:
+            detected = client.detect_manifests(owner, repo_name, ref=ref)
+            if not detected:
+                _error(
+                    f"No supported manifest files found in {owner}/{repo_name}. Specify one with --manifest.",
+                    as_json,
+                )
+                return 2
+            lockfiles = [d for d in detected if d.manifest_type == "lockfile"]
+            selected = lockfiles[0] if lockfiles else detected[0]
+            manifest_path = selected.path
+            if not as_json:
+                print(f"Auto-selected manifest: {manifest_path} ({selected.ecosystem} {selected.manifest_type})")
+        except Exception as exc:
+            _error(f"Failed to scan repository manifests: {exc}", as_json)
+            return 2
+
+    _validate_api_url(api_url)
+    endpoint = f"{api_url.rstrip('/')}/api/v1/github/repos/{owner}/{repo_name}/analyze"
+    payload = {
+        "manifest_path": manifest_path,
+        "ref": ref,
+        "question": question,
+    }
+
+    try:
+        with httpx.Client(timeout=45.0) as http_client:
+            res = http_client.post(
+                endpoint,
+                headers={
+                    "Content-Type": "application/json",
+                    "X-GitHub-Token": client.token,
+                },
+                json=payload,
+            )
+            if res.status_code != 200:
+                detail = res.text
+                try:
+                    data = res.json()
+                    detail = data.get("detail", detail)
+                except Exception:
+                    pass
+                _error(f"Analysis failed ({res.status_code}): {detail}", as_json)
+                return 2
+            report = res.json()
+
+        if as_json:
+            _output(report, json_output=True)
+        else:
+            print("\n========================================================")
+            print("  DepShield AI Security Agent — Repository Audit Report")
+            print("========================================================")
+            print(f"Repository:         {report.get('repository')}")
+            print(f"Branch / Ref:       {report.get('branch')}")
+            print(f"Manifest File:      {report.get('manifest_path')} ({report.get('ecosystem')} {report.get('manifest_type')})")
+            print(f"Total Dependencies: {report.get('dependency_count')}")
+            print(f"Exact Checked:      {report.get('checked_count')}")
+            print(f"Unpinned Ranges:    {report.get('unpinned_count')}")
+            print(f"Vulnerabilities:    {report.get('vulnerability_count')}")
+            print(f"Risk Assessment:    [{report.get('risk_level')}]")
+            print("--------------------------------------------------------")
+            print("AGENT INTELLIGENCE SUMMARY:")
+            print(report.get("agent_summary", "No summary available."))
+            print("--------------------------------------------------------")
+            print("RECOMMENDED REMEDIATION ACTIONS:")
+            for rec in report.get("recommendations", []):
+                print(f" • {rec}")
+            print("--------------------------------------------------------")
+
+            deps = report.get("dependencies", [])
+            vuln_deps = [d for d in deps if d.get("vulnerabilities")]
+            if vuln_deps:
+                print(f"\nFLAGGED VULNERABLE PACKAGES ({len(vuln_deps)}):")
+                for d in vuln_deps:
+                    print(f"\n [!] {d.get('name')} @ {d.get('version')}")
+                    for v in d.get("vulnerabilities", []):
+                        aliases = f" ({', '.join(v.get('aliases', []))})" if v.get("aliases") else ""
+                        print(f"     Advisory: {v.get('id')}{aliases}")
+                        print(f"     Summary:  {v.get('summary')}")
+            print("\n========================================================\n")
+        return 0
+    except Exception as exc:
+        _error(f"Failed to run repository analysis: {exc}", as_json)
+        return 2
 
 
 def _login(api_url: str, dashboard_url: str, json_output: bool) -> int:

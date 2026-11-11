@@ -10,6 +10,7 @@ from app.api.routes.organizations import router as organizations_router
 from app.api.routes.health import router as health_router
 from app.api.routes.agent import router as agent_router
 from app.api.routes.scans import router as scans_router
+from app.api.routes.github import router as github_router
 from app.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -32,9 +33,13 @@ async def _maintenance_loop() -> None:
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     task = None
+    current_settings = get_settings()
     if (
-        settings.database_url.get_secret_value()
-        or settings.database_url_unpooled.get_secret_value()
+        current_settings.environment.lower() not in ("test", "testing", "development")
+        and (
+            current_settings.database_url.get_secret_value()
+            or current_settings.database_url_unpooled.get_secret_value()
+        )
     ):
         task = asyncio.create_task(_maintenance_loop())
     yield
@@ -53,7 +58,7 @@ app.add_middleware(
     allow_origins=settings.cors_origins,
     allow_credentials=False,
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
-    allow_headers=["Authorization", "Content-Type"],
+    allow_headers=["Authorization", "Content-Type", "X-GitHub-Token"],
 )
 
 app.include_router(health_router)
@@ -61,6 +66,7 @@ app.include_router(scans_router)
 app.include_router(organizations_router)
 app.include_router(members_router)
 app.include_router(agent_router)
+app.include_router(github_router)
 
 
 @app.get("/")

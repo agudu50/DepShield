@@ -1,5 +1,8 @@
+import os
 import unittest
 from collections.abc import Generator
+
+os.environ["ENVIRONMENT"] = "test"
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -7,6 +10,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.auth import AuthenticatedUser, get_current_user
+from app.config import Settings, get_settings
 from app.database import Base, get_db_session
 from app.main import app
 from app.models import Membership, Organization, Project
@@ -21,6 +25,7 @@ class DatabaseBackedApiTestCase(unittest.TestCase):
         )
         self.session_factory = sessionmaker(bind=self.engine, expire_on_commit=False)
         Base.metadata.create_all(self.engine)
+        app.dependency_overrides[get_settings] = lambda: Settings(_env_file=None)
         app.dependency_overrides[get_db_session] = self.get_test_session
         self.set_user("test-user")
         self.client = TestClient(app)
