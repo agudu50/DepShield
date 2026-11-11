@@ -24,8 +24,9 @@ The dashboard connects to the DepShield FastAPI backend to audit dependency mani
 ```
 frontend/src/
 ├── components/
-│   ├── GitHubLoginGate.tsx       # Secure landing & GitHub PAT authentication gate
-│   └── GitHubAgentPanel.tsx      # Repository explorer, manifest detection, and agent audit report
+│   ├── GitHubLoginGate.tsx       # Landing page with Web vs CLI guide & zero-exfiltration proof
+│   ├── GitHubAgentPanel.tsx      # Repository explorer, manifest detection, and agent audit report
+│   └── LiveAuditMonitor.tsx      # Real-time CLI & Agent activity stream and privacy assurance
 ├── api.ts                        # Typed REST API client (GitHub, Scans, Manifests)
 ├── auth.ts                       # Neon Managed Auth client (Better Auth)
 ├── App.tsx                       # Main shell, dashboard stats ribbon, and modular tab navigation
@@ -36,11 +37,15 @@ frontend/src/
 
 ### User Workflow
 
-1. **Authentication Gate**: When not authenticated with a GitHub token, users see the Login Gate with platform feature highlights and a secure token form. Tokens are kept in the browser's local storage and used only for read-only manifest inspection.
+1. **Landing & Authentication Gate**:
+   * Interactive **How to Use** guide comparing the **Web App (Browser)** vs **Developer CLI (Terminal)** workflows.
+   * **Zero-Exfiltration Guarantee**: Explicitly verifies that only manifest files are read; proprietary source code (`.ts`, `.py`, `.js`, `.env`) is never opened, read into memory, or uploaded.
+   * **Interactive Live Audit Preview**: Demonstrates timestamped telemetry events, verifying that zero code is leaked and only stateless `(package, version)` queries reach OSV.dev.
 2. **Dashboard Overview**: Displays live stats for connected repositories, total audited dependencies, active OSV advisories, and exact verified versions.
-3. **Five Modular Tabs**:
+3. **Six Modular Tabs**:
    * 🚀 **AI Agent & Repos**: Search and choose any GitHub repository, inspect discovered dependency manifests, specify agent prompts, and trigger one-click vulnerability audits.
    * 🛡️ **Verified Findings**: Expandable list of detected OSV advisories with CVE/GHSA aliases, severity ratings, and fix paths.
+   * 📡 **Live Audit Stream**: Real-time telemetry feed of all file checks, OSV.dev queries, preflight blocks, and CLI monitor synchronization.
    * 📄 **Manual Scanner**: Paste raw npm `package.json` / `package-lock.json` or Python `requirements.txt` / `uv.lock` manifests for quick stateless checks.
    * 👥 **Workspace & Team**: Neon Auth organization management, member invitations, and CLI token authorization.
    * 📊 **Security Reports**: High-level posture indicators, exact version coverage percentage, and deterministic pipeline principles.

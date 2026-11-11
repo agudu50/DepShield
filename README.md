@@ -55,11 +55,15 @@ DepShield integrates with GitHub to enable autonomous repository audits both in 
 ### Web Dashboard Workflow
 
 The frontend features a clean Seesaw-inspired, flat UI architecture (no gradients):
-1. **Login Gate**: Connect with a GitHub Personal Access Token (classic or fine-grained with `repo` or `public_repo` scope). Tokens are stored client-side in the browser's credential storage and used strictly for read-only manifest inspection.
+1. **Interactive Landing Gate**:
+   - Step-by-step interactive guide for both **Web App** and **Developer CLI** workflows.
+   - **Zero-Exfiltration Proof**: Details deterministic isolation—only manifests are read; application source code (`.ts`, `.py`, `.js`, `.env`) is strictly ignored and never read into memory or uploaded.
+   - **Live Audit Telemetry Console Preview**: Simulates real-time file inspection, hash verification, and stateless OSV queries.
 2. **Dashboard Overview**: Once connected, the user enters the intelligence dashboard with live stats (connected repositories, audited dependencies, active OSV advisories, and exact checked pins).
-3. **Five Modular Sections**:
+3. **Six Modular Sections**:
    - **AI Agent & Repos**: Search/filter repositories, discover manifests, set custom agent investigation prompts, and trigger one-click audits.
    - **Findings**: Explore active CVE/GHSA advisories, affected package versions, and fix paths.
+   - **Live Audit Stream**: Real-time telemetry feed tracking exact files checked, outbound OSV queries, policy enforcement gates, and CLI monitor heartbeats.
    - **Manual Scanner**: Paste raw npm `package.json` / `package-lock.json` or Python `requirements.txt` / `uv.lock` manifests for stateless checks.
    - **Workspace & Team**: Manage organizations, project inventories, invitations, and member roles via Neon Auth.
    - **Reports**: Executive security posture, exact-version coverage metrics, and export options.

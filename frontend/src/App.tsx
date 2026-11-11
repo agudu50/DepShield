@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import {
+  Activity,
   AlertTriangle,
   ArrowRight,
   BarChart3,
@@ -26,6 +27,7 @@ import {
 } from './api'
 import GitHubAgentPanel from './components/GitHubAgentPanel'
 import GitHubLoginGate from './components/GitHubLoginGate'
+import LiveAuditMonitor from './components/LiveAuditMonitor'
 import WorkspacePanel from './WorkspacePanel'
 import './App.css'
 
@@ -48,7 +50,7 @@ const npmLockExample = JSON.stringify(
 )
 const pythonLockExample = '[[package]]\nname = "requests"\nversion = "2.31.0"\n\n[[package]]\nname = "jinja2"\nversion = "2.11.3"'
 
-type DashboardTab = 'agent' | 'findings' | 'scanner' | 'workspace' | 'reports'
+type DashboardTab = 'agent' | 'findings' | 'telemetry' | 'scanner' | 'workspace' | 'reports'
 
 export default function App() {
   const [token, setToken] = useState<string>(() => localStorage.getItem(STORAGE_KEY) || '')
@@ -267,6 +269,16 @@ export default function App() {
 
           <button
             type="button"
+            className={`nav-tab-btn ${activeTab === 'telemetry' ? 'active' : ''}`}
+            onClick={() => setActiveTab('telemetry')}
+          >
+            <Activity size={15} />
+            <span>Live Audit Stream</span>
+            <span className="tab-pill live-pulse-pill">LIVE</span>
+          </button>
+
+          <button
+            type="button"
             className={`nav-tab-btn ${activeTab === 'scanner' ? 'active' : ''}`}
             onClick={() => setActiveTab('scanner')}
           >
@@ -293,8 +305,21 @@ export default function App() {
           </button>
         </nav>
 
-        {/* Connected Profile Bar & Logout */}
-        <div className="user-profile-widget">
+        {/* Right Tools & Connected Profile Bar */}
+        <div className="topbar-right-wrap">
+          <div
+            className="topbar-security-pill"
+            title="Deterministic isolation: only manifests read, zero source code access"
+            onClick={() => setActiveTab('telemetry')}
+            role="button"
+            tabIndex={0}
+          >
+            <ShieldCheck size={14} className="text-emerald" />
+            <span>Zero Code Retention</span>
+            <span className="pill-dot-active" />
+          </div>
+
+          <div className="user-profile-widget">
           {user ? (
             <div className="profile-pill">
               <img src={user.avatar_url} alt={user.login} className="profile-thumb" />
@@ -321,6 +346,7 @@ export default function App() {
             </button>
           )}
         </div>
+      </div>
       </header>
 
       {/* Main Dashboard Panel */}
@@ -456,7 +482,14 @@ export default function App() {
           </div>
         )}
 
-        {/* Tab 3: Manual Manifest Scanner */}
+        {/* Tab 3: Real-Time Audit & Telemetry Monitor */}
+        {activeTab === 'telemetry' && (
+          <div className="tab-pane">
+            <LiveAuditMonitor />
+          </div>
+        )}
+
+        {/* Tab 4: Manual Manifest Scanner */}
         {activeTab === 'scanner' && (
           <div className="tab-pane">
             <section className="panel scan-panel">
