@@ -173,6 +173,18 @@ export default function GitHubLoginGate({ onLoginSuccess, onSkipToWorkspace }: G
     }
   }
 
+  // Quick demo login handler for instant exploration
+  function handleDemoLogin() {
+    const demoUser: GitHubUserProfile = {
+      login: 'security-researcher',
+      name: 'Security Researcher',
+      avatar_url: 'https://avatars.githubusercontent.com/u/9919?v=4',
+      public_repos: 14,
+      html_url: 'https://github.com',
+    }
+    onLoginSuccess('demo-token-preview', demoUser)
+  }
+
   return (
     <div className="landing-page-root">
       {/* 1. Global Modern Landing Navbar */}
@@ -180,7 +192,7 @@ export default function GitHubLoginGate({ onLoginSuccess, onSkipToWorkspace }: G
         <div className="landing-nav-container">
           <div className="landing-brand-group">
             <div className="landing-brand-mark">
-              <Shield size={22} />
+              <Shield size={20} />
             </div>
             <div className="landing-brand-text">
               <span className="landing-brand-title">DepShield AI</span>
@@ -189,11 +201,11 @@ export default function GitHubLoginGate({ onLoginSuccess, onSkipToWorkspace }: G
           </div>
 
           <nav className="landing-nav-links">
-            <button type="button" onClick={() => scrollToSection('features')} className="nav-link-btn">
-              Features
+            <button type="button" onClick={() => scrollToSection('capabilities')} className="nav-link-btn">
+              Capabilities
             </button>
             <button type="button" onClick={() => scrollToSection('how-it-works')} className="nav-link-btn">
-              How It Works
+              Workflow
             </button>
             <button type="button" onClick={() => scrollToSection('security-guarantee')} className="nav-link-btn">
               Zero Data Theft
@@ -211,125 +223,58 @@ export default function GitHubLoginGate({ onLoginSuccess, onSkipToWorkspace }: G
             <button
               type="button"
               className="primary-button nav-signin-btn"
-              onClick={() => scrollToSection('auth-card')}
+              onClick={() => scrollToSection('target-connect')}
             >
-              <Github size={15} />
+              <Github size={14} />
               <span>Connect Target</span>
             </button>
           </div>
         </div>
       </header>
 
-      {/* 2. Hero Section with 3D Holographic Pentest Radar */}
+      {/* 2. Hero Section: High-Impact Cyber Headline + 3D Target Radar */}
       <section className="landing-hero-section">
         <div className="hero-content-split">
-          {/* Left Column: Mission, Value Prop, CTAs */}
+          {/* Left Column: Mission, Value Prop, Interactive Connect Station */}
           <div className="hero-text-block">
             <div className="theme-pill">
               <Sparkles size={14} />
-              <span>Theme: Build an Agent That Pentests a Target on Its Own</span>
+              <span>Hackathon Theme: Build an Agent That Pentests a Target on Its Own</span>
             </div>
 
             <h1 className="hero-main-title">
-              Build an Agent That Pentests a Target on Its Own
+              An Autonomous Pentest Agent That Secures Targets on Its Own.
             </h1>
 
             <p className="hero-description">
-              DepShield is an autonomous security agent powered by <strong>Bifrost by Maxim AI</strong>.
-              Point it at any software target: the agent automatically discovers package building blocks,
-              probes for real-world exploits, and writes verified, non-breaking fix plans with <strong>zero data theft</strong>.
+              Powered by <strong>Bifrost by Maxim AI</strong>. Point the agent at any software repository:
+              it automatically discovers your package building blocks, probes attack reachability against
+              authoritative OSV.dev feeds, and writes safe fix plans—with <strong>zero source code theft</strong>.
             </p>
 
-            <div className="hero-cta-row">
-              <button
-                type="button"
-                className="primary-button hero-primary-btn"
-                onClick={() => scrollToSection('auth-card')}
-              >
-                <span>Pentest a Repository</span>
-                <ArrowRight size={16} />
-              </button>
-              <button
-                type="button"
-                className="secondary-button hero-secondary-btn"
-                onClick={() => {
-                  setWorkflowTab('cli')
-                  scrollToSection('how-it-works')
-                }}
-              >
-                <Terminal size={16} />
-                <span>Run in Terminal CLI</span>
-              </button>
-            </div>
-
-            {/* Quick Metrics Strip */}
-            <div className="hero-stats-strip">
-              <div className="hero-stat-item">
-                <strong>100%</strong>
-                <span>OSV.dev Deterministic Feeds</span>
+            {/* Seamless Interactive Target Connection Box right in Hero */}
+            <div id="target-connect" className="hero-connect-card">
+              <div className="connect-card-header">
+                <div className="connect-card-badge">
+                  <Terminal size={14} />
+                  <span>TARGET CONNECTION STATION</span>
+                </div>
+                <span className="connect-scope-tag">repo read scope</span>
               </div>
-              <div className="hero-stat-sep" />
-              <div className="hero-stat-item">
-                <strong>0 Bytes</strong>
-                <span>Source Code Ingestion</span>
-              </div>
-              <div className="hero-stat-sep" />
-              <div className="hero-stat-item">
-                <strong>Bifrost</strong>
-                <span>Maxim AI Gateway Reasoning</span>
-              </div>
-            </div>
-          </div>
 
-          {/* Right Column: Interactive 3D Pentest Shield Target */}
-          <div className="hero-3d-visual-block">
-            <Pentest3DShield />
-          </div>
-        </div>
-      </section>
+              {error && (
+                <div className="alert-banner alert-error" role="alert">
+                  <AlertTriangle size={15} />
+                  <span>{error}</span>
+                </div>
+              )}
 
-      {/* 3. Authentication & Target Connect Card */}
-      <section id="auth-card" className="landing-auth-section">
-        <div className="auth-card-container">
-          <div className="auth-card-intro">
-            <span className="eyebrow">Connect & Audit</span>
-            <h2>Select Your Target to Begin Pentesting</h2>
-            <p>
-              Provide a read-only GitHub Personal Access Token to let DepShield scan dependency manifests.
-              Your token is stored safely in browser memory only and never sent to third parties.
-            </p>
-          </div>
-
-          <div className="auth-card-box">
-            <div className="auth-box-header">
-              <div className="gh-icon-bubble">
-                <Github size={26} />
-              </div>
-              <div>
-                <h3>Connect GitHub Repository Target</h3>
-                <p>Read-only <code>repo</code> or <code>public_repo</code> access required.</p>
-              </div>
-            </div>
-
-            {error && (
-              <div className="alert-banner alert-error" role="alert">
-                <AlertTriangle size={16} />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleConnect} className="login-form">
-              <div className="form-group">
-                <label htmlFor="gh-token">
-                  <span>Personal Access Token</span>
-                  <span className="label-badge">repo scope</span>
-                </label>
+              <form onSubmit={handleConnect} className="hero-connect-form">
                 <div className="token-field-wrap">
                   <KeyRound size={16} className="field-icon" />
                   <input
-                    id="gh-token"
                     type={showToken ? 'text' : 'password'}
-                    placeholder="ghp_... or github_pat_..."
+                    placeholder="Paste GitHub Personal Access Token (ghp_... or github_pat_...)"
                     value={tokenInput}
                     onChange={(e) => setTokenInput(e.target.value)}
                     className="token-field"
@@ -344,107 +289,215 @@ export default function GitHubLoginGate({ onLoginSuccess, onSkipToWorkspace }: G
                     {showToken ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
-              </div>
 
-              <button type="submit" className="primary-button login-submit-btn" disabled={loading || !tokenInput.trim()}>
-                {loading ? (
-                  <>
-                    <RefreshCw className="animate-spin" size={18} />
-                    <span>Connecting to GitHub...</span>
-                  </>
-                ) : (
-                  <>
-                    <Github size={18} />
-                    <span>Connect Target & Enter Dashboard</span>
-                    <ArrowRight size={16} />
-                  </>
-                )}
-              </button>
-            </form>
+                <div className="hero-connect-actions">
+                  <button
+                    type="submit"
+                    className="primary-button hero-submit-btn"
+                    disabled={loading || !tokenInput.trim()}
+                  >
+                    {loading ? (
+                      <>
+                        <RefreshCw className="animate-spin" size={16} />
+                        <span>Connecting Target...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Github size={16} />
+                        <span>Pentest Repository Target</span>
+                        <ArrowRight size={15} />
+                      </>
+                    )}
+                  </button>
 
-            <div className="login-help-section">
-              <div className="help-box">
-                <span className="help-title">Need a GitHub token?</span>
-                <p>Create a token with <code>repo</code> or <code>public_repo</code> read access:</p>
+                  <button
+                    type="button"
+                    className="secondary-button demo-preview-btn"
+                    onClick={handleDemoLogin}
+                    title="Explore dashboard with sample target repository"
+                  >
+                    <span>Instant Demo Mode</span>
+                  </button>
+                </div>
+              </form>
+
+              {/* Privacy Reassurance Pill */}
+              <div className="connect-privacy-note">
+                <Lock size={12} className="text-emerald" />
+                <span>
+                  Tokens stored exclusively in browser session memory. <strong>0 bytes of source code transmitted.</strong>
+                </span>
                 <a
                   href="https://github.com/settings/tokens/new?scopes=repo&description=DepShield%20AI%20Agent"
                   target="_blank"
                   rel="noreferrer"
-                  className="token-link"
+                  className="quick-token-link"
                 >
-                  <span>Generate Token on GitHub</span>
-                  <ExternalLink size={13} />
+                  Create Token <ExternalLink size={11} />
                 </a>
-              </div>
-
-              {onSkipToWorkspace && (
-                <div className="alternate-auth">
-                  <span>Or manage organizations directly:</span>
-                  <button type="button" className="text-button" onClick={onSkipToWorkspace}>
-                    Open Neon Workspace Login →
+                {onSkipToWorkspace && (
+                  <button
+                    type="button"
+                    className="quick-token-link text-btn"
+                    onClick={onSkipToWorkspace}
+                  >
+                    Neon Workspace →
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
+
+            {/* Quick Metrics Strip */}
+            <div className="hero-stats-strip">
+              <div className="hero-stat-item">
+                <strong>100%</strong>
+                <span>Deterministic OSV Feeds</span>
+              </div>
+              <div className="hero-stat-sep" />
+              <div className="hero-stat-item">
+                <strong>0 Bytes</strong>
+                <span>Source Code Ingestion</span>
+              </div>
+              <div className="hero-stat-sep" />
+              <div className="hero-stat-item">
+                <strong>Bifrost</strong>
+                <span>Maxim AI Gateway Brain</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Interactive 3D Cyber Pentest Radar Target */}
+          <div className="hero-3d-visual-block">
+            <Pentest3DShield />
           </div>
         </div>
       </section>
 
-      {/* 4. Core Capabilities Grid */}
-      <section id="features" className="landing-section">
+      {/* 3. Bento Grid: Modern Asymmetric Capabilities Showcase */}
+      <section id="capabilities" className="landing-section">
         <div className="section-heading-centered">
-          <span className="eyebrow">Autonomous Capabilities</span>
-          <h2>Built for Autonomous Penetration Testing & Defense</h2>
+          <span className="eyebrow">Bento Architecture</span>
+          <h2>Autonomous Penetration Testing & Defense Engine</h2>
           <p>
-            Traditional scanners only report raw bugs. DepShield uses Bifrost by Maxim AI to evaluate real-world exploit reachability,
-            preflight new installs, and keep code private.
+            Traditional scanners only report raw, static lists of CVEs. DepShield uses Bifrost by Maxim AI
+            to reason through attack surfaces, evaluate real-world reachability, and enforce strict boundaries.
           </p>
         </div>
 
-        <div className="login-features-grid">
-          <div className="feature-item">
-            <div className="feature-icon">
-              <ShieldCheck size={20} />
+        <div className="bento-grid">
+          {/* Bento Card 1: Bifrost AI Reasoner (Large - 2 Columns) */}
+          <div className="bento-card bento-col-2 bento-bifrost">
+            <div className="bento-card-header">
+              <div className="bento-icon-box blue">
+                <Sparkles size={20} />
+              </div>
+              <div>
+                <span className="bento-tag">MAXIM AI INTELLIGENCE</span>
+                <h3>Autonomous Attack Reasoning via Bifrost Gateway</h3>
+              </div>
             </div>
-            <div>
-              <h4>Zero Source Code Ingestion</h4>
-              <p>Only package names and versions from <code>package.json</code> or lockfiles are read. Your application source code is completely ignored.</p>
+            <p className="bento-desc">
+              When a vulnerability is detected, the Bifrost AI Gateway evaluates how an attacker could exploit it,
+              checks whether the vulnerable function is actually reached by your code, and writes a non-breaking fix plan.
+            </p>
+
+            {/* Mockup Attack Surface Card */}
+            <div className="bento-mockup-surface">
+              <div className="surface-header">
+                <span className="surface-target">TARGET: axios@1.5.0</span>
+                <span className="surface-advisory">CVE-2023-45857 (SSRF)</span>
+                <span className="surface-status blocked">HIGH RISK</span>
+              </div>
+              <div className="surface-body">
+                <div className="surface-metric">
+                  <span className="label">Attack Vector:</span>
+                  <span className="val">Absolute URL redirect SSRF via unpinned HTTP client</span>
+                </div>
+                <div className="surface-metric">
+                  <span className="label">Bifrost Verdict:</span>
+                  <span className="val text-emerald">Upgrade to axios@1.6.0 resolves flaw with 0 breaking changes</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="feature-item">
-            <div className="feature-icon">
-              <Activity size={20} />
+          {/* Bento Card 2: Zero Code Exfiltration Boundary (1 Column) */}
+          <div className="bento-card bento-col-1">
+            <div className="bento-card-header">
+              <div className="bento-icon-box emerald">
+                <ShieldCheck size={20} />
+              </div>
+              <div>
+                <span className="bento-tag">SANDBOX GUARANTEE</span>
+                <h3>Zero Code Theft</h3>
+              </div>
             </div>
-            <div>
-              <h4>Live Audit Telemetry</h4>
-              <p>Watch every file access, hash verification, and OSV lookup in real time directly from the dashboard activity stream.</p>
+            <p className="bento-desc">
+              DepShield parses only dependency manifest files. Your proprietary code is never opened, read into memory, or uploaded.
+            </p>
+            <div className="bento-checklist-box">
+              <div className="check-row allowed">
+                <CheckCircle2 size={15} />
+                <span><code>package.json</code>, <code>uv.lock</code></span>
+              </div>
+              <div className="check-row blocked">
+                <XCircle size={15} />
+                <span><code>.ts</code>, <code>.py</code>, <code>.env</code> (Blocked)</span>
+              </div>
+              <div className="check-row metric">
+                <Lock size={14} />
+                <strong>0 Bytes Exfiltrated</strong>
+              </div>
             </div>
           </div>
 
-          <div className="feature-item">
-            <div className="feature-icon">
-              <Sparkles size={20} />
+          {/* Bento Card 3: Safe Preflight CLI Guard (1 Column) */}
+          <div className="bento-card bento-col-1">
+            <div className="bento-card-header">
+              <div className="bento-icon-box violet">
+                <Terminal size={20} />
+              </div>
+              <div>
+                <span className="bento-tag">CLI PROTECTION</span>
+                <h3>Pre-Install Gate</h3>
+              </div>
             </div>
-            <div>
-              <h4>Grounded Bifrost Explanations</h4>
-              <p>Vulnerabilities are deterministically verified against OSV.dev before the Bifrost AI Gateway explains the attack surface.</p>
+            <p className="bento-desc">
+              Intercepts package additions before they reach your disk, blocking malicious or vulnerable libraries with scripts disabled.
+            </p>
+            <div className="bento-mini-terminal">
+              <code>$ depshield add bad-pkg@1.0</code>
+              <span className="terminal-err">✖ BLOCKED: Malicious payload</span>
+              <span className="terminal-ok">✔ Policy enforced</span>
             </div>
           </div>
 
-          <div className="feature-item">
-            <div className="feature-icon">
-              <Terminal size={20} />
+          {/* Bento Card 4: Deterministic OSV Pipeline (Large - 2 Columns) */}
+          <div className="bento-card bento-col-2">
+            <div className="bento-card-header">
+              <div className="bento-icon-box amber">
+                <Database size={20} />
+              </div>
+              <div>
+                <span className="bento-tag">DETERMINISTIC VERIFICATION</span>
+                <h3>Zero AI Hallucinations via OSV.dev</h3>
+              </div>
             </div>
-            <div>
-              <h4>Safe Install Preflight CLI</h4>
-              <p>Blocks malicious or vulnerable packages before download with lifecycle scripts disabled (<code>--ignore-scripts</code>).</p>
+            <p className="bento-desc">
+              AI models never guess or invent security advisories. Every finding originates from authoritative,
+              cryptographically verifiable OSV.dev feeds. Bifrost explains the verified evidence without fabricating CVEs.
+            </p>
+            <div className="bento-evidence-pills">
+              <span className="evidence-pill">Exact Pinned Versions</span>
+              <span className="evidence-pill">SHA-256 Registry Hashes</span>
+              <span className="evidence-pill">CVSS 3.1 Severity Vectors</span>
+              <span className="evidence-pill">SemVer Safe Ranges</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 5. How to Use: Web App vs. CLI Interactive Guide */}
+      {/* 4. Interactive Deployment Pipeline (Web App vs CLI) */}
       <section id="how-it-works" className="landing-section">
         <div className="workflow-guide-section">
           <div className="section-heading-centered">
@@ -605,7 +658,7 @@ export default function GitHubLoginGate({ onLoginSuccess, onSkipToWorkspace }: G
         </div>
       </section>
 
-      {/* 6. Security & Zero Data Theft Guarantee Section */}
+      {/* 5. Zero Data Theft Guarantee & Live Telemetry Stream */}
       <section id="security-guarantee" className="landing-section">
         <div className="transparency-assurance-section">
           <div className="transparency-grid">
@@ -677,9 +730,14 @@ export default function GitHubLoginGate({ onLoginSuccess, onSkipToWorkspace }: G
             {/* Right: Live Interactive Telemetry Console Simulator */}
             <div id="live-telemetry" className="live-preview-console-card">
               <div className="console-header">
+                <div className="console-window-dots">
+                  <span className="dot dot-red" />
+                  <span className="dot dot-yellow" />
+                  <span className="dot dot-green" />
+                </div>
                 <div className="console-title">
-                  <Terminal size={16} />
-                  <span>Live Audit Telemetry Stream (Preview)</span>
+                  <Terminal size={14} />
+                  <span>depshield-telemetry-daemon (Live Preview)</span>
                 </div>
                 <button
                   type="button"
@@ -695,7 +753,7 @@ export default function GitHubLoginGate({ onLoginSuccess, onSkipToWorkspace }: G
                   ) : (
                     <>
                       <Play size={13} />
-                      <span>Simulate Event</span>
+                      <span>Simulate Attack Probe</span>
                     </>
                   )}
                 </button>
@@ -738,7 +796,7 @@ export default function GitHubLoginGate({ onLoginSuccess, onSkipToWorkspace }: G
         </div>
       </section>
 
-      {/* 7. Comprehensive Modern Website Footer */}
+      {/* 6. Comprehensive Modern Website Footer */}
       <footer className="landing-footer">
         <div className="landing-footer-container">
           <div className="footer-columns-grid">
@@ -763,8 +821,8 @@ export default function GitHubLoginGate({ onLoginSuccess, onSkipToWorkspace }: G
             <div className="footer-col">
               <h5>Agent Capabilities</h5>
               <ul className="footer-links-list">
-                <li><button type="button" onClick={() => scrollToSection('auth-card')}>Autonomous Audits</button></li>
-                <li><button type="button" onClick={() => scrollToSection('features')}>Grounded OSV Matching</button></li>
+                <li><button type="button" onClick={() => scrollToSection('target-connect')}>Autonomous Pentesting</button></li>
+                <li><button type="button" onClick={() => scrollToSection('capabilities')}>Grounded OSV Matching</button></li>
                 <li><button type="button" onClick={() => scrollToSection('live-telemetry')}>Live Activity Stream</button></li>
                 <li><button type="button" onClick={() => scrollToSection('how-it-works')}>Preflight Install Gates</button></li>
               </ul>
@@ -777,7 +835,7 @@ export default function GitHubLoginGate({ onLoginSuccess, onSkipToWorkspace }: G
                 <li><a href="https://github.com/maximhq/bifrost" target="_blank" rel="noreferrer">Maxim AI Bifrost Docs <ExternalLink size={12} /></a></li>
                 <li><a href="http://localhost:8080" target="_blank" rel="noreferrer">Local Bifrost Dashboard <ExternalLink size={12} /></a></li>
                 <li><button type="button" onClick={() => scrollToSection('security-guarantee')}>Zero Code Leakage</button></li>
-                <li><button type="button" onClick={() => scrollToSection('features')}>Deterministic Evidence</button></li>
+                <li><button type="button" onClick={() => scrollToSection('capabilities')}>Deterministic Evidence</button></li>
               </ul>
             </div>
 
