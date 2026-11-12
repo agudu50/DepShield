@@ -288,11 +288,8 @@ export default function App() {
       <header className="db-topbar">
         <div className="db-topbar-upper">
           <div className="db-brand">
-            <div className="db-brand-icon">
-              <Shield size={16} />
-            </div>
+            <img src="/depshield-logo.jpg" alt="DepShield Logo" className="db-brand-logo-img" />
             <div className="db-brand-text">
-              <span className="db-brand-name">DEPSHIELD</span>
               <span className="db-brand-divider">/</span>
               <span className="db-brand-tag">BIFROST BY MAXIM AI</span>
             </div>

@@ -93,6 +93,16 @@ body {
   gap: 10px;
 }
 
+.db-brand-logo-img {
+  height: 28px;
+  width: auto;
+  max-width: 140px;
+  object-fit: contain;
+  display: block;
+  filter: invert(1);
+  mix-blend-mode: screen;
+}
+
 .db-brand-icon {
   width: 30px;
   height: 30px;
@@ -3108,6 +3118,16 @@ body {
   color: #ffffff;
 }
 
+.sw-nav-logo-img {
+  height: 30px;
+  width: auto;
+  max-width: 150px;
+  object-fit: contain;
+  display: block;
+  filter: invert(1);
+  mix-blend-mode: screen;
+}
+
 .sw-nav-brand-name {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-weight: 800;
@@ -4177,6 +4197,16 @@ body {
   color: #ffffff;
 }
 
+.sw-footer-logo-img {
+  height: 24px;
+  width: auto;
+  max-width: 120px;
+  object-fit: contain;
+  display: block;
+  filter: invert(1);
+  mix-blend-mode: screen;
+}
+
 .sw-footer-cols {
   display: flex;
   gap: 64px;
@@ -4412,6 +4442,13 @@ body {
 
 [data-theme="light"] .db-topbar-upper {
   border-bottom-color: #f4f4f5;
+}
+
+[data-theme="light"] .db-brand-logo-img,
+[data-theme="light"] .sw-nav-logo-img,
+[data-theme="light"] .sw-footer-logo-img {
+  filter: none;
+  mix-blend-mode: multiply;
 }
 
 [data-theme="light"] .db-brand-icon {

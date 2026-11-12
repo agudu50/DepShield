@@ -16,7 +16,6 @@ import {
   Lock,
   Moon,
   RefreshCw,
-  Shield,
   ShieldCheck,
   Sun,
   Terminal,
@@ -117,8 +116,7 @@ export default function GitHubLoginGate({
       <header className="sw-nav">
         <div className="sw-nav-inner">
           <div className="sw-nav-brand">
-            <Shield size={16} />
-            <span className="sw-nav-brand-name">DEPSHIELD</span>
+            <img src="/depshield-logo.jpg" alt="DepShield Logo" className="sw-nav-logo-img" />
           </div>
           <nav className="sw-nav-links">
             <button type="button" onClick={() => scrollTo('sw-capabilities')}>Capabilities</button>
@@ -623,8 +621,7 @@ export default function GitHubLoginGate({
         <div className="sw-footer-inner">
           <div className="sw-footer-top">
             <div className="sw-footer-brand">
-              <Shield size={15} />
-              <span>DEPSHIELD</span>
+              <img src="/depshield-logo.jpg" alt="DepShield Logo" className="sw-footer-logo-img" />
             </div>
             <div className="sw-footer-cols">
               <div className="sw-footer-col">

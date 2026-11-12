@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="frontend/public/depshield-logo.jpg" alt="DepShield Logo" width="460" />
+</p>
+
 # DepShield AI
 
 ### An Agent Powered by Bifrost by Maxim AI
