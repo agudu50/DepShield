@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Activity,
   AlertTriangle,
@@ -12,13 +12,16 @@ import {
   Globe,
   Laptop,
   Lock,
+  Pause,
   Play,
   RefreshCw,
+  RotateCcw,
   Search,
   Shield,
   ShieldAlert,
   ShieldCheck,
   Terminal,
+  Trash2,
   XCircle,
 } from 'lucide-react'
 
@@ -110,11 +113,112 @@ const INITIAL_EVENTS: TelemetryEvent[] = [
   },
 ]
 
+const SAMPLE_POOL: Omit<TelemetryEvent, 'id' | 'timestamp'>[] = [
+  {
+    source: 'cli',
+    category: 'file_read',
+    action: 'DESCRIPTOR_INSPECT',
+    target: 'package-lock.json (integrity check)',
+    details: 'Checked resolved lockfile SHA-512 hashes against npm registry index. Zero source files accessed.',
+    verdict: 'safe',
+    bytesSent: 0,
+    sourceCodeRead: 0,
+  },
+  {
+    source: 'gateway',
+    category: 'osv_query',
+    action: 'OSV_INTEGRITY_CHECK',
+    target: 'https://api.osv.dev/v1/query (lodash@4.17.15)',
+    details: 'Checked lodash against OSV database. Matched prototype pollution advisory GHSA-p6mc-m468-83gw.',
+    verdict: 'warning',
+    bytesSent: 198,
+    sourceCodeRead: 0,
+  },
+  {
+    source: 'agent',
+    category: 'policy_gate',
+    action: 'INSTALL_PREFLIGHT_BLOCK',
+    target: 'malicious-test-pkg@1.0.0',
+    details: 'Preflight safety gate triggered: untrusted lifecycle scripts detected. Download automatically halted.',
+    verdict: 'blocked',
+    bytesSent: 85,
+    sourceCodeRead: 0,
+  },
+  {
+    source: 'cli',
+    category: 'privacy_guard',
+    action: 'EXFILTRATION_PROOF',
+    target: 'Network Egress Guard (Boundary Check)',
+    details: 'Audited outgoing payload. Zero repository source code, environment secrets, or tokens transmitted.',
+    verdict: 'safe',
+    bytesSent: 0,
+    sourceCodeRead: 0,
+  },
+  {
+    source: 'gateway',
+    category: 'osv_query',
+    action: 'BIFROST_GATEWAY_ROUTING',
+    target: 'bifrost://gateway.maxim.ai/osv/v1',
+    details: 'Intelligent routing verified: payload strictly isolated to pinned tuples [express@4.18.2].',
+    verdict: 'safe',
+    bytesSent: 212,
+    sourceCodeRead: 0,
+  },
+  {
+    source: 'agent',
+    category: 'policy_gate',
+    action: 'CVE_REACHABILITY_ANALYSIS',
+    target: 'jsonwebtoken@8.5.1 (CVE-2022-23529)',
+    details: 'Bifrost AI Agent confirmed verified non-breaking upgrade available in v9.0.0 with semver compatibility.',
+    verdict: 'safe',
+    bytesSent: 160,
+    sourceCodeRead: 0,
+  },
+  {
+    source: 'cli',
+    category: 'file_read',
+    action: 'MANIFEST_PARSER_SANDBOX',
+    target: 'pyproject.toml / uv.lock',
+    details: 'Extracted dependency table only. Code parser ignored all test files, models, and application controllers.',
+    verdict: 'safe',
+    bytesSent: 0,
+    sourceCodeRead: 0,
+  },
+]
+
+const CLI_COMMANDS = [
+  {
+    id: 'monitor',
+    name: 'Live File Monitor',
+    desc: 'Watches lockfiles and syncs inventory securely:',
+    cmd: 'depshield monitor',
+  },
+  {
+    id: 'add',
+    name: 'Safe Install Gate',
+    desc: 'Checks OSV before installing with lifecycle scripts disabled:',
+    cmd: 'depshield add express@4.18.2',
+  },
+  {
+    id: 'status',
+    name: 'GitHub CLI Status',
+    desc: 'Verify local keyring credentials:',
+    cmd: 'depshield github status',
+  },
+  {
+    id: 'audit',
+    name: 'Offline Audit Gate',
+    desc: 'Pentest dependency trees without sending data:',
+    cmd: 'depshield audit --offline',
+  },
+]
+
 export default function LiveAuditMonitor() {
   const [events, setEvents] = useState<TelemetryEvent[]>(INITIAL_EVENTS)
   const [filter, setFilter] = useState<'all' | 'file_read' | 'osv_query' | 'policy_gate' | 'privacy_guard'>('all')
   const [search, setSearch] = useState('')
   const [isSimulating, setIsSimulating] = useState(false)
+  const [isLiveStreaming, setIsLiveStreaming] = useState(false)
   const [copiedCmd, setCopiedCmd] = useState<string | null>(null)
 
   function copyText(cmd: string) {
@@ -123,76 +227,45 @@ export default function LiveAuditMonitor() {
     setTimeout(() => setCopiedCmd(null), 2000)
   }
 
+  const triggerNextEvent = useCallback(() => {
+    const now = new Date()
+    const ts =
+      now.toTimeString().split(' ')[0] + '.' + String(now.getMilliseconds()).padStart(3, '0')
+    const sample = SAMPLE_POOL[Math.floor(Math.random() * SAMPLE_POOL.length)]
+    const newEvt: TelemetryEvent = {
+      ...sample,
+      id: `evt-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      timestamp: ts,
+    }
+    setEvents((prev) => [newEvt, ...prev])
+  }, [])
+
   function simulateNewEvent() {
     setIsSimulating(true)
-    const now = new Date()
-    const ts = now.toTimeString().split(' ')[0] + '.' + String(now.getMilliseconds()).padStart(3, '0')
-
-    const samplePool: TelemetryEvent[] = [
-      {
-        id: `evt-${Date.now()}-1`,
-        timestamp: ts,
-        source: 'cli',
-        category: 'file_read',
-        action: 'DESCRIPTOR_INSPECT',
-        target: 'package-lock.json',
-        details: 'Checked resolved lockfile integrity hashes. Zero lines of app code or .env read.',
-        verdict: 'safe',
-        bytesSent: 0,
-        sourceCodeRead: 0,
-      },
-      {
-        id: `evt-${Date.now()}-2`,
-        timestamp: ts,
-        source: 'gateway',
-        category: 'osv_query',
-        action: 'OSV_INTEGRITY_CHECK',
-        target: 'https://api.osv.dev/v1/query',
-        details: 'Checked lodash@4.17.15 against OSV database. Match: Prototype pollution GHSA-p6mc-m468-83gw.',
-        verdict: 'warning',
-        bytesSent: 198,
-        sourceCodeRead: 0,
-      },
-      {
-        id: `evt-${Date.now()}-3`,
-        timestamp: ts,
-        source: 'agent',
-        category: 'policy_gate',
-        action: 'INSTALL_PREFLIGHT_BLOCK',
-        target: 'malicious-test-pkg@1.0.0',
-        details: 'Preflight safety gate triggered: package unverified on public registry. Install automatically aborted.',
-        verdict: 'blocked',
-        bytesSent: 85,
-        sourceCodeRead: 0,
-      },
-      {
-        id: `evt-${Date.now()}-4`,
-        timestamp: ts,
-        source: 'cli',
-        category: 'privacy_guard',
-        action: 'EXFILTRATION_PROOF',
-        target: 'Network Egress Guard',
-        details: 'Audited outgoing payload. Zero repository source code, environment secrets, or tokens transmitted.',
-        verdict: 'safe',
-        bytesSent: 0,
-        sourceCodeRead: 0,
-      },
-    ]
-
-    const randomEvt = samplePool[Math.floor(Math.random() * samplePool.length)]
     setTimeout(() => {
-      setEvents((prev) => [randomEvt, ...prev])
+      triggerNextEvent()
       setIsSimulating(false)
-    }, 450)
+    }, 380)
   }
 
-  // Periodic heartbeat animation
+  function handleResetFeed() {
+    setEvents(INITIAL_EVENTS)
+    setSearch('')
+    setFilter('all')
+  }
+
+  function handleClearFeed() {
+    setEvents([])
+  }
+
+  // Periodic live telemetry streaming when toggled on
   useEffect(() => {
-    const timer = setInterval(() => {
-      // Keep feed active with periodic heartbeat
-    }, 5000)
-    return () => clearInterval(timer)
-  }, [])
+    if (!isLiveStreaming) return
+    const interval = setInterval(() => {
+      triggerNextEvent()
+    }, 4500)
+    return () => clearInterval(interval)
+  }, [isLiveStreaming, triggerNextEvent])
 
   const filteredEvents = events.filter((evt) => {
     if (filter !== 'all' && evt.category !== filter) return false
@@ -220,11 +293,30 @@ export default function LiveAuditMonitor() {
             <h2>Autonomous Agent & CLI Live Activity Monitor</h2>
             <p className="telemetry-subtitle">
               Inspect exactly what files the AI Agent and local CLI inspect, verify zero source-code leakage,
-              and trace every outbound OSV.dev request in real time.
+              and trace every outbound OSV.dev request in real time. Powered by Bifrost by Maxim AI.
             </p>
           </div>
 
           <div className="telemetry-actions">
+            <button
+              type="button"
+              className={`secondary-button stream-toggle-btn ${isLiveStreaming ? 'streaming-active' : ''}`}
+              onClick={() => setIsLiveStreaming((v) => !v)}
+              title={isLiveStreaming ? 'Pause auto telemetry feed' : 'Start live auto telemetry feed'}
+            >
+              {isLiveStreaming ? (
+                <>
+                  <Pause size={14} />
+                  <span>Stream: Live</span>
+                </>
+              ) : (
+                <>
+                  <Play size={14} />
+                  <span>Stream: Paused</span>
+                </>
+              )}
+            </button>
+
             <button
               type="button"
               className="primary-button simulate-btn"
@@ -233,12 +325,12 @@ export default function LiveAuditMonitor() {
             >
               {isSimulating ? (
                 <>
-                  <RefreshCw size={15} className="animate-spin" />
+                  <RefreshCw size={14} className="animate-spin" />
                   <span>Emitting Telemetry...</span>
                 </>
               ) : (
                 <>
-                  <Play size={15} />
+                  <Play size={14} />
                   <span>Trigger Telemetry Event</span>
                 </>
               )}
@@ -249,7 +341,7 @@ export default function LiveAuditMonitor() {
         {/* Security Metric Pills */}
         <div className="telemetry-stats-row">
           <div className="stat-pill stat-safe">
-            <ShieldCheck size={18} />
+            <ShieldCheck size={20} />
             <div>
               <span className="stat-value">0 Bytes</span>
               <span className="stat-label">Source Code Read</span>
@@ -257,7 +349,7 @@ export default function LiveAuditMonitor() {
           </div>
 
           <div className="stat-pill stat-info">
-            <Database size={18} />
+            <Database size={20} />
             <div>
               <span className="stat-value">{totalBytes} B</span>
               <span className="stat-label">Manifest Metadata Sent</span>
@@ -265,7 +357,7 @@ export default function LiveAuditMonitor() {
           </div>
 
           <div className="stat-pill stat-safe">
-            <Lock size={18} />
+            <Lock size={20} />
             <div>
               <span className="stat-value">Local Only</span>
               <span className="stat-label">Keyring & Token Isolation</span>
@@ -273,7 +365,7 @@ export default function LiveAuditMonitor() {
           </div>
 
           <div className="stat-pill stat-live">
-            <Activity size={18} />
+            <Activity size={20} />
             <div>
               <span className="stat-value">{events.length} Events</span>
               <span className="stat-label">Verified Audit Traces</span>
@@ -289,7 +381,7 @@ export default function LiveAuditMonitor() {
           {/* Privacy Guarantee Card */}
           <div className="guardrail-card">
             <div className="guardrail-header">
-              <Shield size={20} className="guardrail-icon" />
+              <Shield size={18} className="guardrail-icon" />
               <h3>Zero-Exfiltration Guardrail</h3>
             </div>
             <p className="guardrail-desc">
@@ -299,7 +391,7 @@ export default function LiveAuditMonitor() {
 
             <div className="guardrail-checklist">
               <div className="check-item allowed">
-                <CheckCircle2 size={16} />
+                <CheckCircle2 size={15} />
                 <div>
                   <strong>Only Dependency Descriptors Read</strong>
                   <span><code>package.json</code>, <code>requirements.txt</code>, <code>uv.lock</code></span>
@@ -307,7 +399,7 @@ export default function LiveAuditMonitor() {
               </div>
 
               <div className="check-item blocked">
-                <XCircle size={16} />
+                <XCircle size={15} />
                 <div>
                   <strong>Source Code Strictly Blocked</strong>
                   <span>Zero <code>.ts</code>, <code>.py</code>, <code>.js</code>, <code>.env</code> file access</span>
@@ -315,10 +407,18 @@ export default function LiveAuditMonitor() {
               </div>
 
               <div className="check-item allowed">
-                <Globe size={16} />
+                <Globe size={15} />
                 <div>
                   <strong>Stateless OSV Feeds Only</strong>
                   <span>Only package name and exact pinned version are queried</span>
+                </div>
+              </div>
+
+              <div className="check-item allowed">
+                <Cpu size={15} />
+                <div>
+                  <strong>Bifrost Intelligent Gateway</strong>
+                  <span>AI Agent pentests reachability without receiving repository source</span>
                 </div>
               </div>
             </div>
@@ -327,7 +427,7 @@ export default function LiveAuditMonitor() {
           {/* Real-time CLI Commands Box */}
           <div className="cli-commands-card">
             <div className="cli-card-header">
-              <Terminal size={18} />
+              <Terminal size={17} />
               <h4>CLI Live Monitor Commands</h4>
             </div>
             <p className="cli-card-hint">
@@ -335,59 +435,25 @@ export default function LiveAuditMonitor() {
             </p>
 
             <div className="command-list">
-              <div className="cmd-row">
-                <div className="cmd-meta">
-                  <span className="cmd-name">Live File Monitor</span>
-                  <span className="cmd-desc">Watches lockfiles and syncs inventory securely:</span>
+              {CLI_COMMANDS.map((item) => (
+                <div key={item.id} className="cmd-row">
+                  <div className="cmd-meta">
+                    <span className="cmd-name">{item.name}</span>
+                    <span className="cmd-desc">{item.desc}</span>
+                  </div>
+                  <div className="cmd-box">
+                    <code>{item.cmd}</code>
+                    <button
+                      type="button"
+                      className="copy-btn"
+                      onClick={() => copyText(item.cmd)}
+                      title="Copy command"
+                    >
+                      {copiedCmd === item.cmd ? <Check size={13} /> : <Copy size={13} />}
+                    </button>
+                  </div>
                 </div>
-                <div className="cmd-box">
-                  <code>depshield monitor</code>
-                  <button
-                    type="button"
-                    className="copy-btn"
-                    onClick={() => copyText('depshield monitor')}
-                    title="Copy command"
-                  >
-                    {copiedCmd === 'depshield monitor' ? <Check size={14} /> : <Copy size={14} />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="cmd-row">
-                <div className="cmd-meta">
-                  <span className="cmd-name">Safe Install Gate</span>
-                  <span className="cmd-desc">Checks OSV before installing with lifecycle scripts disabled:</span>
-                </div>
-                <div className="cmd-box">
-                  <code>depshield add express@4.18.2</code>
-                  <button
-                    type="button"
-                    className="copy-btn"
-                    onClick={() => copyText('depshield add express@4.18.2')}
-                    title="Copy command"
-                  >
-                    {copiedCmd === 'depshield add express@4.18.2' ? <Check size={14} /> : <Copy size={14} />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="cmd-row">
-                <div className="cmd-meta">
-                  <span className="cmd-name">GitHub CLI Status</span>
-                  <span className="cmd-desc">Verify local keyring credentials:</span>
-                </div>
-                <div className="cmd-box">
-                  <code>depshield github status</code>
-                  <button
-                    type="button"
-                    className="copy-btn"
-                    onClick={() => copyText('depshield github status')}
-                    title="Copy command"
-                  >
-                    {copiedCmd === 'depshield github status' ? <Check size={14} /> : <Copy size={14} />}
-                  </button>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
@@ -450,12 +516,51 @@ export default function LiveAuditMonitor() {
             </div>
           </div>
 
+          {/* Feed Toolbar Actions (Count + Clear/Reset) */}
+          <div className="feed-toolbar-sub">
+            <span className="feed-count-indicator">
+              Showing <strong>{filteredEvents.length}</strong> of {events.length} trace events
+            </span>
+            <div className="feed-sub-actions">
+              <button
+                type="button"
+                className="feed-sub-btn"
+                onClick={handleResetFeed}
+                title="Reset feed to initial demo trace"
+              >
+                <RotateCcw size={12} />
+                <span>Reset</span>
+              </button>
+              {events.length > 0 && (
+                <button
+                  type="button"
+                  className="feed-sub-btn danger"
+                  onClick={handleClearFeed}
+                  title="Clear all live events"
+                >
+                  <Trash2 size={12} />
+                  <span>Clear</span>
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Terminal-Style Log Stream */}
           <div className="telemetry-log-stream">
             {filteredEvents.length === 0 ? (
               <div className="empty-feed">
                 <Search size={24} />
-                <p>No telemetry events matched your search.</p>
+                <p>No telemetry events matched your search filter.</p>
+                <button
+                  type="button"
+                  className="secondary-button empty-reset-btn"
+                  onClick={() => {
+                    setFilter('all')
+                    setSearch('')
+                  }}
+                >
+                  Clear Filters
+                </button>
               </div>
             ) : (
               filteredEvents.map((evt) => (
@@ -463,17 +568,17 @@ export default function LiveAuditMonitor() {
                   <div className="log-entry-meta">
                     <span className="log-timestamp">{evt.timestamp}</span>
                     <span className={`log-source source-${evt.source}`}>
-                      {evt.source === 'cli' && <Laptop size={12} />}
-                      {evt.source === 'agent' && <Cpu size={12} />}
-                      {evt.source === 'gateway' && <Globe size={12} />}
+                      {evt.source === 'cli' && <Laptop size={11} />}
+                      {evt.source === 'agent' && <Cpu size={11} />}
+                      {evt.source === 'gateway' && <Globe size={11} />}
                       <span>{evt.source.toUpperCase()}</span>
                     </span>
                     <span className="log-action">{evt.action}</span>
                     <span className={`verdict-pill pill-${evt.verdict}`}>
-                      {evt.verdict === 'safe' && <ShieldCheck size={12} />}
-                      {evt.verdict === 'warning' && <AlertTriangle size={12} />}
-                      {evt.verdict === 'blocked' && <ShieldAlert size={12} />}
-                      {evt.verdict === 'info' && <FileCheck size={12} />}
+                      {evt.verdict === 'safe' && <ShieldCheck size={11} />}
+                      {evt.verdict === 'warning' && <AlertTriangle size={11} />}
+                      {evt.verdict === 'blocked' && <ShieldAlert size={11} />}
+                      {evt.verdict === 'info' && <FileCheck size={11} />}
                       <span>{evt.verdict.toUpperCase()}</span>
                     </span>
                   </div>
