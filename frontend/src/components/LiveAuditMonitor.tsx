@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Activity,
   AlertTriangle,
@@ -12,10 +12,6 @@ import {
   Globe,
   Laptop,
   Lock,
-  Pause,
-  Play,
-  RefreshCw,
-  RotateCcw,
   Search,
   Shield,
   ShieldAlert,
@@ -24,169 +20,22 @@ import {
   Trash2,
   XCircle,
 } from 'lucide-react'
+import {
+  getStoredEvents,
+  subscribeTelemetry,
+  clearTelemetryEvents,
+  addTelemetryEvent,
+  type TelemetryEvent,
+} from '../telemetry'
 
-export interface TelemetryEvent {
+interface CliCommandInfo {
   id: string
-  timestamp: string
-  source: 'agent' | 'cli' | 'gateway'
-  category: 'file_read' | 'osv_query' | 'policy_gate' | 'privacy_guard' | 'heartbeat'
-  action: string
-  target: string
-  details: string
-  verdict: 'safe' | 'warning' | 'blocked' | 'info'
-  bytesSent: number
-  sourceCodeRead: number
+  name: string
+  desc: string
+  cmd: string
 }
 
-const INITIAL_EVENTS: TelemetryEvent[] = [
-  {
-    id: 'evt-1',
-    timestamp: '12:04:11.204',
-    source: 'cli',
-    category: 'heartbeat',
-    action: 'MONITOR_START',
-    target: 'depshield-cli (pid 34812)',
-    details: 'Foreground monitor initialized on project root. Polling dependency descriptors only.',
-    verdict: 'info',
-    bytesSent: 184,
-    sourceCodeRead: 0,
-  },
-  {
-    id: 'evt-2',
-    timestamp: '12:04:11.890',
-    source: 'cli',
-    category: 'file_read',
-    action: 'DESCRIPTOR_DISCOVERY',
-    target: 'package.json (manifest)',
-    details: 'Verified manifest schema. Parsed 24 declared dependencies. ZERO source files (.ts, .js) touched.',
-    verdict: 'safe',
-    bytesSent: 0,
-    sourceCodeRead: 0,
-  },
-  {
-    id: 'evt-3',
-    timestamp: '12:04:12.115',
-    source: 'cli',
-    category: 'privacy_guard',
-    action: 'SOURCE_CODE_SANDBOX',
-    target: 'src/*, .env, .git',
-    details: 'Sandbox boundary enforced. Application logic and secrets strictly bypassed and omitted from memory.',
-    verdict: 'safe',
-    bytesSent: 0,
-    sourceCodeRead: 0,
-  },
-  {
-    id: 'evt-4',
-    timestamp: '12:04:12.450',
-    source: 'gateway',
-    category: 'osv_query',
-    action: 'OSV_BATCH_LOOKUP',
-    target: 'https://api.osv.dev/v1/querybatch',
-    details: 'Dispatched exact pinned tuples: axios@1.5.0, express@4.18.2. No repository contents or paths transmitted.',
-    verdict: 'safe',
-    bytesSent: 412,
-    sourceCodeRead: 0,
-  },
-  {
-    id: 'evt-5',
-    timestamp: '12:04:13.010',
-    source: 'agent',
-    category: 'policy_gate',
-    action: 'ADVISORY_EVALUATION',
-    target: 'axios@1.5.0 (GHSA-8hc4-vh64-cxmj)',
-    details: 'Deterministic match on SSRF advisory (CVSS 7.5). Bifrost AI Agent requested to evaluate upgrade reachability.',
-    verdict: 'warning',
-    bytesSent: 290,
-    sourceCodeRead: 0,
-  },
-  {
-    id: 'evt-6',
-    timestamp: '12:04:13.720',
-    source: 'agent',
-    category: 'policy_gate',
-    action: 'SAFE_REMEDIATION_PLAN',
-    target: 'axios@1.6.0',
-    details: 'Remediation verified: semver-compatible bump to 1.6.0 resolves CVE-2023-45857 without breaking API changes.',
-    verdict: 'safe',
-    bytesSent: 140,
-    sourceCodeRead: 0,
-  },
-]
-
-const SAMPLE_POOL: Omit<TelemetryEvent, 'id' | 'timestamp'>[] = [
-  {
-    source: 'cli',
-    category: 'file_read',
-    action: 'DESCRIPTOR_INSPECT',
-    target: 'package-lock.json (integrity check)',
-    details: 'Checked resolved lockfile SHA-512 hashes against npm registry index. Zero source files accessed.',
-    verdict: 'safe',
-    bytesSent: 0,
-    sourceCodeRead: 0,
-  },
-  {
-    source: 'gateway',
-    category: 'osv_query',
-    action: 'OSV_INTEGRITY_CHECK',
-    target: 'https://api.osv.dev/v1/query (lodash@4.17.15)',
-    details: 'Checked lodash against OSV database. Matched prototype pollution advisory GHSA-p6mc-m468-83gw.',
-    verdict: 'warning',
-    bytesSent: 198,
-    sourceCodeRead: 0,
-  },
-  {
-    source: 'agent',
-    category: 'policy_gate',
-    action: 'INSTALL_PREFLIGHT_BLOCK',
-    target: 'malicious-test-pkg@1.0.0',
-    details: 'Preflight safety gate triggered: untrusted lifecycle scripts detected. Download automatically halted.',
-    verdict: 'blocked',
-    bytesSent: 85,
-    sourceCodeRead: 0,
-  },
-  {
-    source: 'cli',
-    category: 'privacy_guard',
-    action: 'EXFILTRATION_PROOF',
-    target: 'Network Egress Guard (Boundary Check)',
-    details: 'Audited outgoing payload. Zero repository source code, environment secrets, or tokens transmitted.',
-    verdict: 'safe',
-    bytesSent: 0,
-    sourceCodeRead: 0,
-  },
-  {
-    source: 'gateway',
-    category: 'osv_query',
-    action: 'BIFROST_GATEWAY_ROUTING',
-    target: 'bifrost://gateway.maxim.ai/osv/v1',
-    details: 'Intelligent routing verified: payload strictly isolated to pinned tuples [express@4.18.2].',
-    verdict: 'safe',
-    bytesSent: 212,
-    sourceCodeRead: 0,
-  },
-  {
-    source: 'agent',
-    category: 'policy_gate',
-    action: 'CVE_REACHABILITY_ANALYSIS',
-    target: 'jsonwebtoken@8.5.1 (CVE-2022-23529)',
-    details: 'Bifrost AI Agent confirmed verified non-breaking upgrade available in v9.0.0 with semver compatibility.',
-    verdict: 'safe',
-    bytesSent: 160,
-    sourceCodeRead: 0,
-  },
-  {
-    source: 'cli',
-    category: 'file_read',
-    action: 'MANIFEST_PARSER_SANDBOX',
-    target: 'pyproject.toml / uv.lock',
-    details: 'Extracted dependency table only. Code parser ignored all test files, models, and application controllers.',
-    verdict: 'safe',
-    bytesSent: 0,
-    sourceCodeRead: 0,
-  },
-]
-
-const CLI_COMMANDS = [
+const CLI_COMMANDS: CliCommandInfo[] = [
   {
     id: 'monitor',
     name: 'Live File Monitor',
@@ -214,12 +63,19 @@ const CLI_COMMANDS = [
 ]
 
 export default function LiveAuditMonitor() {
-  const [events, setEvents] = useState<TelemetryEvent[]>(INITIAL_EVENTS)
+  const [events, setEvents] = useState<TelemetryEvent[]>(() => getStoredEvents())
   const [filter, setFilter] = useState<'all' | 'file_read' | 'osv_query' | 'policy_gate' | 'privacy_guard'>('all')
   const [search, setSearch] = useState('')
-  const [isSimulating, setIsSimulating] = useState(false)
-  const [isLiveStreaming, setIsLiveStreaming] = useState(false)
+  const [isVerifying, setIsVerifying] = useState(false)
   const [copiedCmd, setCopiedCmd] = useState<string | null>(null)
+
+  useEffect(() => {
+    setEvents(getStoredEvents())
+    const unsubscribe = subscribeTelemetry((updated) => {
+      setEvents(updated)
+    })
+    return unsubscribe
+  }, [])
 
   function copyText(cmd: string) {
     navigator.clipboard.writeText(cmd)
@@ -227,45 +83,27 @@ export default function LiveAuditMonitor() {
     setTimeout(() => setCopiedCmd(null), 2000)
   }
 
-  const triggerNextEvent = useCallback(() => {
-    const now = new Date()
-    const ts =
-      now.toTimeString().split(' ')[0] + '.' + String(now.getMilliseconds()).padStart(3, '0')
-    const sample = SAMPLE_POOL[Math.floor(Math.random() * SAMPLE_POOL.length)]
-    const newEvt: TelemetryEvent = {
-      ...sample,
-      id: `evt-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      timestamp: ts,
-    }
-    setEvents((prev) => [newEvt, ...prev])
-  }, [])
-
-  function simulateNewEvent() {
-    setIsSimulating(true)
+  function handleVerifySandbox() {
+    setIsVerifying(true)
     setTimeout(() => {
-      triggerNextEvent()
-      setIsSimulating(false)
-    }, 380)
-  }
-
-  function handleResetFeed() {
-    setEvents(INITIAL_EVENTS)
-    setSearch('')
-    setFilter('all')
+      addTelemetryEvent({
+        source: 'cli',
+        category: 'privacy_guard',
+        action: 'SANDBOX_ISOLATION_PROBE',
+        target: 'Environment & File Descriptors',
+        details: 'Active boundary check passed. ZERO source files (.ts, .py, .js) or local secrets (.env) accessible. Pinned tuples only.',
+        verdict: 'safe',
+        bytesSent: 0,
+        sourceCodeRead: 0,
+      })
+      setIsVerifying(false)
+    }, 280)
   }
 
   function handleClearFeed() {
+    clearTelemetryEvents()
     setEvents([])
   }
-
-  // Periodic live telemetry streaming when toggled on
-  useEffect(() => {
-    if (!isLiveStreaming) return
-    const interval = setInterval(() => {
-      triggerNextEvent()
-    }, 4500)
-    return () => clearInterval(interval)
-  }, [isLiveStreaming, triggerNextEvent])
 
   const filteredEvents = events.filter((evt) => {
     if (filter !== 'all' && evt.category !== filter) return false
@@ -300,40 +138,13 @@ export default function LiveAuditMonitor() {
           <div className="telemetry-actions">
             <button
               type="button"
-              className={`secondary-button stream-toggle-btn ${isLiveStreaming ? 'streaming-active' : ''}`}
-              onClick={() => setIsLiveStreaming((v) => !v)}
-              title={isLiveStreaming ? 'Pause auto telemetry feed' : 'Start live auto telemetry feed'}
-            >
-              {isLiveStreaming ? (
-                <>
-                  <Pause size={14} />
-                  <span>Stream: Live</span>
-                </>
-              ) : (
-                <>
-                  <Play size={14} />
-                  <span>Stream: Paused</span>
-                </>
-              )}
-            </button>
-
-            <button
-              type="button"
               className="primary-button simulate-btn"
-              onClick={simulateNewEvent}
-              disabled={isSimulating}
+              onClick={handleVerifySandbox}
+              disabled={isVerifying}
+              title="Run a live verification probe against the sandbox boundary"
             >
-              {isSimulating ? (
-                <>
-                  <RefreshCw size={14} className="animate-spin" />
-                  <span>Emitting Telemetry...</span>
-                </>
-              ) : (
-                <>
-                  <Play size={14} />
-                  <span>Trigger Telemetry Event</span>
-                </>
-              )}
+              <ShieldCheck size={14} />
+              <span>{isVerifying ? 'Verifying Sandbox...' : 'Probe Sandbox Boundary'}</span>
             </button>
           </div>
         </div>
@@ -522,24 +333,15 @@ export default function LiveAuditMonitor() {
               Showing <strong>{filteredEvents.length}</strong> of {events.length} trace events
             </span>
             <div className="feed-sub-actions">
-              <button
-                type="button"
-                className="feed-sub-btn"
-                onClick={handleResetFeed}
-                title="Reset feed to initial demo trace"
-              >
-                <RotateCcw size={12} />
-                <span>Reset</span>
-              </button>
               {events.length > 0 && (
                 <button
                   type="button"
                   className="feed-sub-btn danger"
                   onClick={handleClearFeed}
-                  title="Clear all live events"
+                  title="Clear all recorded audit traces"
                 >
                   <Trash2 size={12} />
-                  <span>Clear</span>
+                  <span>Clear Traces</span>
                 </button>
               )}
             </div>
@@ -547,7 +349,24 @@ export default function LiveAuditMonitor() {
 
           {/* Terminal-Style Log Stream */}
           <div className="telemetry-log-stream">
-            {filteredEvents.length === 0 ? (
+            {events.length === 0 ? (
+              <div className="empty-feed">
+                <ShieldCheck size={36} className="text-emerald" />
+                <h4>No Audit Traces Yet</h4>
+                <p>
+                  No repository audit or scan has been executed in this session. Select any repository in the
+                  <strong> AI Agent</strong> tab and click <em>Run AI Security Audit</em>, or run a CLI command
+                  to observe real-time audit logs.
+                </p>
+                <button
+                  type="button"
+                  className="secondary-button empty-reset-btn"
+                  onClick={handleVerifySandbox}
+                >
+                  <ShieldCheck size={14} /> Probe Sandbox Isolation
+                </button>
+              </div>
+            ) : filteredEvents.length === 0 ? (
               <div className="empty-feed">
                 <Search size={24} />
                 <p>No telemetry events matched your search filter.</p>

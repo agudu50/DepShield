@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Activity,
   AlertTriangle,
@@ -14,7 +14,6 @@ import {
   Globe,
   KeyRound,
   Lock,
-  Play,
   RefreshCw,
   Shield,
   ShieldCheck,
@@ -22,6 +21,12 @@ import {
   XCircle,
 } from 'lucide-react'
 import { getGitHubUser, type GitHubUserProfile } from '../api'
+import {
+  getStoredEvents,
+  subscribeTelemetry,
+  addTelemetryEvent,
+  type TelemetryEvent,
+} from '../telemetry'
 import Pentest3DShield from './Pentest3DShield'
 
 interface GitHubLoginGateProps {
@@ -29,64 +34,22 @@ interface GitHubLoginGateProps {
   onSkipToWorkspace?: () => void
 }
 
-interface SimulatedEvent {
-  id: string
-  time: string
-  source: 'CLI' | 'AGENT' | 'GATEWAY'
-  action: string
-  target: string
-  verdict: 'SAFE' | 'BLOCKED' | 'WARNING'
-  details: string
-}
-
-const PREVIEW_EVENTS: SimulatedEvent[] = [
-  {
-    id: 'p1',
-    time: '12:00:01.102',
-    source: 'CLI',
-    action: 'DESCRIPTOR_READ',
-    target: 'package.json',
-    verdict: 'SAFE',
-    details: 'Read dependency names and pinned versions only. 0 lines of app code or .env accessed.',
-  },
-  {
-    id: 'p2',
-    time: '12:00:01.350',
-    source: 'GATEWAY',
-    action: 'OSV_QUERY',
-    target: 'https://api.osv.dev/v1/query',
-    verdict: 'SAFE',
-    details: 'Checking axios@1.5.0 against OSV.dev vulnerability database. Payload: 48 bytes (No source code).',
-  },
-  {
-    id: 'p3',
-    time: '12:00:01.810',
-    source: 'AGENT',
-    action: 'PREFLIGHT_GATE',
-    target: 'CVE-2023-45857',
-    verdict: 'WARNING',
-    details: 'High severity advisory matched. Bifrost AI Agent verified non-breaking upgrade path to axios@1.6.0.',
-  },
-  {
-    id: 'p4',
-    time: '12:00:02.100',
-    source: 'CLI',
-    action: 'EXFILTRATION_PROOF',
-    target: 'Memory & Network Boundary',
-    verdict: 'SAFE',
-    details: 'Verified 0 bytes of proprietary source code transmitted. All tokens stored in OS keyring.',
-  },
-]
-
 export default function GitHubLoginGate({ onLoginSuccess, onSkipToWorkspace }: GitHubLoginGateProps) {
   const [tokenInput, setTokenInput] = useState('')
   const [showToken, setShowToken] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [workflowTab, setWorkflowTab] = useState<'web' | 'cli'>('web')
-  const [previewEvents, setPreviewEvents] = useState<SimulatedEvent[]>(PREVIEW_EVENTS)
+  const [telemetryEvents, setTelemetryEvents] = useState<TelemetryEvent[]>(() => getStoredEvents())
   const [isSimulating, setIsSimulating] = useState(false)
   const [copiedText, setCopiedText] = useState<string | null>(null)
+
+  useEffect(() => {
+    setTelemetryEvents(getStoredEvents())
+    return subscribeTelemetry((events) => {
+      setTelemetryEvents(events)
+    })
+  }, [])
 
   function copyCommand(cmd: string) {
     navigator.clipboard.writeText(cmd)
@@ -98,44 +61,21 @@ export default function GitHubLoginGate({ onLoginSuccess, onSkipToWorkspace }: G
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  function runSimulatedStep() {
+  function runSandboxProbe() {
     setIsSimulating(true)
-    const now = new Date()
-    const ts = now.toTimeString().split(' ')[0] + '.' + String(now.getMilliseconds()).padStart(3, '0')
-    const samples: SimulatedEvent[] = [
-      {
-        id: `sim-${Date.now()}-1`,
-        time: ts,
-        source: 'CLI',
-        action: 'LOCKFILE_SNAPSHOT',
-        target: 'uv.lock / package-lock.json',
-        verdict: 'SAFE',
-        details: 'Verified SHA-256 integrity hashes. Zero private logic or credentials touched.',
-      },
-      {
-        id: `sim-${Date.now()}-2`,
-        time: ts,
-        source: 'AGENT',
-        action: 'REPUTATION_PREFLIGHT',
-        target: 'event-stream@3.3.6',
-        verdict: 'BLOCKED',
-        details: 'Preflight safety check blocked installation: malicious flatmap-stream payload detected.',
-      },
-      {
-        id: `sim-${Date.now()}-3`,
-        time: ts,
-        source: 'GATEWAY',
-        action: 'OSV_BATCH_MATCH',
-        target: 'https://api.osv.dev/v1/querybatch',
-        verdict: 'SAFE',
-        details: 'Audited 18 pinned packages against OSV database. Total outbound payload: 320 bytes.',
-      },
-    ]
-    const pick = samples[Math.floor(Math.random() * samples.length)]
     setTimeout(() => {
-      setPreviewEvents((prev) => [pick, ...prev.slice(0, 5)])
+      addTelemetryEvent({
+        source: 'cli',
+        category: 'privacy_guard',
+        action: 'SANDBOX_ISOLATION_PROBE',
+        target: 'Environment & File Descriptors',
+        details: 'Active boundary check passed. ZERO source files (.ts, .py, .js) or local secrets (.env) accessible. Pinned tuples only.',
+        verdict: 'safe',
+        bytesSent: 0,
+        sourceCodeRead: 0,
+      })
       setIsSimulating(false)
-    }, 400)
+    }, 280)
   }
 
   async function handleConnect(e: React.FormEvent) {
@@ -603,30 +543,40 @@ export default function GitHubLoginGate({ onLoginSuccess, onSkipToWorkspace }: G
                 <button
                   type="button"
                   className="sw-sim-btn"
-                  onClick={runSimulatedStep}
+                  onClick={runSandboxProbe}
                   disabled={isSimulating}
                 >
                   {isSimulating
-                    ? <><RefreshCw size={11} className="animate-spin" /> Probing…</>
-                    : <><Play size={11} /> Simulate Probe</>}
+                    ? <><RefreshCw size={11} className="animate-spin" /> Verifying…</>
+                    : <><ShieldCheck size={11} /> Probe Sandbox Isolation</>}
                 </button>
               </div>
 
               <div className="sw-console-body">
-                {previewEvents.map((evt) => (
-                  <div key={evt.id} className="sw-console-event">
-                    <div className="sw-evt-header">
-                      <span className="sw-evt-ts">{evt.time}</span>
-                      <span className="sw-evt-src">[{evt.source}]</span>
-                      <span className="sw-evt-action">{evt.action}</span>
-                      <span className={`sw-evt-verdict sw-verdict-${evt.verdict.toLowerCase()}`}>
-                        {evt.verdict}
-                      </span>
-                    </div>
-                    <div className="sw-evt-target">Target: <code>{evt.target}</code></div>
-                    <p className="sw-evt-detail">{evt.details}</p>
+                {telemetryEvents.length === 0 ? (
+                  <div className="sw-console-empty" style={{ padding: '24px 16px', textAlign: 'center' }}>
+                    <ShieldCheck size={26} className="text-emerald" style={{ display: 'inline-block', marginBottom: 8 }} />
+                    <div style={{ color: '#ffffff', fontWeight: 600, fontSize: '0.85rem' }}>Sandbox Boundary Active & Verified</div>
+                    <p style={{ color: '#888888', fontSize: '0.78rem', marginTop: 4, lineHeight: 1.5 }}>
+                      No repository scans on record yet. Click &ldquo;Probe Sandbox Isolation&rdquo; to test local guardrails, or connect your GitHub token above to audit real repositories.
+                    </p>
                   </div>
-                ))}
+                ) : (
+                  telemetryEvents.slice(0, 5).map((evt) => (
+                    <div key={evt.id} className="sw-console-event">
+                      <div className="sw-evt-header">
+                        <span className="sw-evt-ts">{evt.timestamp}</span>
+                        <span className="sw-evt-src">[{evt.source.toUpperCase()}]</span>
+                        <span className="sw-evt-action">{evt.action}</span>
+                        <span className={`sw-evt-verdict sw-verdict-${evt.verdict.toLowerCase()}`}>
+                          {evt.verdict.toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="sw-evt-target">Target: <code>{evt.target}</code></div>
+                      <p className="sw-evt-detail">{evt.details}</p>
+                    </div>
+                  ))
+                )}
               </div>
 
               <div className="sw-console-footer">

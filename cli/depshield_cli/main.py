@@ -759,6 +759,28 @@ def _parse_candidate_spec(spec: str, version: str | None = None) -> tuple[str, s
     return spec, version or "latest", "npm"
 
 
+def _query_live_osv(package_name: str, version: str, ecosystem: str = "npm") -> list[dict[str, str]]:
+    eco = "PyPI" if ecosystem in ("python", "pypi") else "npm"
+    payload = {"package": {"name": package_name, "ecosystem": eco}, "version": version.lstrip("v")}
+    try:
+        with httpx.Client(timeout=3.0) as client:
+            res = client.post("https://api.osv.dev/v1/query", json=payload)
+            if res.status_code == 200:
+                data = res.json()
+                vulns = data.get("vulns", [])
+                return [
+                    {
+                        "id": str(v.get("id", "")),
+                        "summary": str(v.get("summary", "")),
+                    }
+                    for v in vulns
+                    if isinstance(v, dict) and v.get("id")
+                ]
+    except Exception:
+        pass
+    return []
+
+
 def _add_standalone(
     root: Path,
     package_spec: str,
@@ -768,15 +790,11 @@ def _add_standalone(
     pkg_name, ver, ecosystem = _parse_candidate_spec(package_spec, requested_version)
     is_exact = ver != "latest" and not any(c in ver for c in ("^", "~", ">", "<", "*"))
 
-    known_cves = {
-        "express": ["GHSA-qw6h-v8gh-w369", "GHSA-rv95-896h-2c62"],
-        "axios": ["GHSA-8hc4-vh64-cxmj"],
-        "body-parser": ["GHSA-27r3-jxmh-p828"],
-        "follow-redirects": ["GHSA-mrwp-f3q8-3g9p"],
-        "toml": ["GHSA-4qx8-w7c3-pj3p"],
-    }
+    advisories: list[str] = []
+    if is_exact:
+        live_vulns = _query_live_osv(pkg_name, ver, ecosystem)
+        advisories = [v["id"] for v in live_vulns if v.get("id")]
 
-    advisories = known_cves.get(pkg_name, [])
     decision = "warn" if (advisories or not is_exact) else "allow"
     safe_command = (
         f"npm install {pkg_name}@{ver} --ignore-scripts --save-exact"
@@ -921,25 +939,19 @@ def _audit(root: Path, offline: bool, json_output: bool) -> int:
     pinned_count = sum(1 for d in unique_deps if d["version"] != "latest" and not any(c in d["version"] for c in ("^", "~", ">", "<", "*")))
     unpinned_count = total_deps - pinned_count
 
-    known_cves = {
-        "body-parser": ("GHSA-27r3-jxmh-p828", "Denial of Service in body-parser"),
-        "follow-redirects": ("GHSA-mrwp-f3q8-3g9p", "Exposure of sensitive information in follow-redirects"),
-        "toml": ("GHSA-4qx8-w7c3-pj3p", "Prototype pollution vulnerability in toml"),
-        "axios": ("GHSA-8hc4-vh64-cxmj", "Server-Side Request Forgery in axios"),
-        "express": ("GHSA-qw6h-v8gh-w369", "Open redirect in express"),
-    }
     flagged: list[dict[str, str]] = []
-    for d in unique_deps:
-        p_name = d["name"]
-        if p_name in known_cves:
-            cve_id, summary = known_cves[p_name]
-            flagged.append({
-                "package": p_name,
-                "version": d["version"],
-                "advisory": cve_id,
-                "summary": summary,
-                "recommendation": f"Upgrade '{p_name}' to the latest security patch.",
-            })
+    if not offline:
+        for d in unique_deps:
+            if d.get("version") and d["version"] != "latest":
+                matches = _query_live_osv(d["name"], d["version"], d.get("ecosystem", "npm"))
+                for m in matches:
+                    flagged.append({
+                        "package": d["name"],
+                        "version": d["version"],
+                        "advisory": m["id"],
+                        "summary": m.get("summary", ""),
+                        "recommendation": f"Upgrade '{d['name']}' to the latest security patch.",
+                    })
 
     output_payload = {
         "status": "passed",
