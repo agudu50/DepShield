@@ -5,6 +5,32 @@
 
 * {
   box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: #27272a transparent;
+}
+
+/* ── MODERN MINIMALIST SCROLLBAR ────────────────────────────── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 9999px;
+  transition: background 0.15s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 body {
@@ -561,12 +587,32 @@ body {
 }
 
 .repo-list {
-  max-height: 420px;
+  max-height: 460px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding-right: 4px;
+  padding-right: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: #27272a transparent;
+}
+
+.repo-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.repo-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.repo-list::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 9999px;
+  transition: background 0.15s ease;
+}
+
+.repo-list::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
 }
 
 .repo-card {
