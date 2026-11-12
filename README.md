@@ -197,7 +197,7 @@ Whenever an audit runs, you can see a transparent log of every action:
 You can verify that everything works properly with our built-in test suites:
 
 ```powershell
-# 1. Run all CLI unit tests (24 tests)
+# 1. Run all CLI unit tests (27 tests)
 $env:PYTHONPATH = "cli"
 .\backend\.venv\Scripts\python -m unittest discover -s cli/tests
 
@@ -234,6 +234,8 @@ DepShield/
 │   │   └── main.py           # Preflight installation gates and background monitor
 ├── backend.cmd               # Quick-start script for Windows
 ├── run-backend.ps1           # Quick-start PowerShell script
+├── CONTRIBUTING.md           # Contribution guidelines and testing workflows
+├── LICENSE                   # Apache-2.0 open-source license
 └── README.md                 # Project documentation
 ```
 
