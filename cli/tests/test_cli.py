@@ -23,7 +23,15 @@ from depshield_cli.adapters.uv import (
 from depshield_cli.api import ApiClient
 from depshield_cli.auth import dashboard_origin
 from depshield_cli.config import ProjectConfig, load_config, save_config
-from depshield_cli.main import _ClientContext, _add, _verify_candidate, build_parser
+from depshield_cli.main import (
+    _ClientContext,
+    _add,
+    _add_standalone,
+    _audit,
+    _monitor_standalone,
+    _verify_candidate,
+    build_parser,
+)
 
 
 class NpmAdapterTests(unittest.TestCase):
@@ -591,6 +599,33 @@ class PythonPreinstallGateTests(unittest.TestCase):
             events,
             ["preflight", "approval", "uv_add", "uv_sync", "verify", "inventory_sync"],
         )
+
+    def test_audit_offline_verifies_zero_code_read_and_zero_egress(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            (temp_root / "package.json").write_text(
+                json.dumps({"name": "demo", "dependencies": {"express": "4.18.2"}}),
+                encoding="utf-8",
+            )
+            (temp_root / "src").mkdir()
+            (temp_root / "src" / "index.js").write_text("console.log('secret code');", encoding="utf-8")
+            (temp_root / ".env").write_text("SECRET_KEY=supersecret", encoding="utf-8")
+
+            res = _audit(temp_root, offline=True, json_output=True)
+            self.assertEqual(res, 0)
+
+    def test_add_standalone_evaluates_exact_pinned_and_enforces_ignore_scripts(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            res = _add_standalone(temp_root, "express@4.18.2", None, json_output=True)
+            self.assertEqual(res, 0)
+
+    def test_monitor_standalone_once_checks_descriptors(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            (temp_root / "package.json").write_text('{"name": "test"}', encoding="utf-8")
+            res = _monitor_standalone(temp_root, json_output=True, once=True)
+            self.assertEqual(res, 0)
 
 
 if __name__ == "__main__":

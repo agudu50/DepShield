@@ -566,14 +566,17 @@ export default function LiveAuditMonitor() {
               filteredEvents.map((evt) => (
                 <div key={evt.id} className={`log-entry verdict-${evt.verdict}`}>
                   <div className="log-entry-meta">
-                    <span className="log-timestamp">{evt.timestamp}</span>
-                    <span className={`log-source source-${evt.source}`}>
-                      {evt.source === 'cli' && <Laptop size={11} />}
-                      {evt.source === 'agent' && <Cpu size={11} />}
-                      {evt.source === 'gateway' && <Globe size={11} />}
-                      <span>{evt.source.toUpperCase()}</span>
-                    </span>
-                    <span className="log-action">{evt.action}</span>
+                    <div className="log-meta-left">
+                      <span className="log-timestamp">{evt.timestamp}</span>
+                      <span className={`log-source source-${evt.source}`}>
+                        {evt.source === 'cli' && <Laptop size={11} />}
+                        {evt.source === 'agent' && <Cpu size={11} />}
+                        {evt.source === 'gateway' && <Globe size={11} />}
+                        <span>{evt.source.toUpperCase()}</span>
+                      </span>
+                      <span className="log-action">{evt.action}</span>
+                    </div>
+
                     <span className={`verdict-pill pill-${evt.verdict}`}>
                       {evt.verdict === 'safe' && <ShieldCheck size={11} />}
                       {evt.verdict === 'warning' && <AlertTriangle size={11} />}
@@ -593,12 +596,14 @@ export default function LiveAuditMonitor() {
                   </div>
 
                   <div className="log-footer-badges">
-                    <span className="badge-micro">
-                      <strong>Code Read:</strong> {evt.sourceCodeRead} B
-                    </span>
-                    <span className="badge-micro">
-                      <strong>Egress:</strong> {evt.bytesSent} B
-                    </span>
+                    <div className="footer-metrics-left">
+                      <span className="badge-micro">
+                        <strong>Code Read:</strong> {evt.sourceCodeRead} B
+                      </span>
+                      <span className="badge-micro">
+                        <strong>Egress:</strong> {evt.bytesSent} B
+                      </span>
+                    </div>
                     <span className="badge-micro verified-stamp">
                       <CheckCircle2 size={11} /> Verified Safe
                     </span>
