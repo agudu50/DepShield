@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -e
+
+# Resolve repository root directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+export PYTHONPATH="${REPO_DIR}/cli:${PYTHONPATH}"
+
+# 1. Check for backend venv
+if [ -x "${REPO_DIR}/backend/.venv/bin/python" ]; then
+    exec "${REPO_DIR}/backend/.venv/bin/python" -m depshield_cli "$@"
+# 2. Check for root venv
+elif [ -x "${REPO_DIR}/.venv/bin/python" ]; then
+    exec "${REPO_DIR}/.venv/bin/python" -m depshield_cli "$@"
+# 3. Check for python3
+elif command -v python3 >/dev/null 2>&1; then
+    exec python3 -m depshield_cli "$@"
+# 4. Fallback to python
+else
+    exec python -m depshield_cli "$@"
+fi
+

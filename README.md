@@ -165,7 +165,22 @@ The web dashboard will start at **`http://localhost:5173`**.
 
 ### Option B: Using the Developer CLI (Terminal)
 
-You can also use DepShield as your personal bodyguard directly in the command line:
+#### 1. Quick CLI Setup (One-time)
+To make `depshield` globally accessible from any directory on your computer:
+
+- **Windows**:
+  ```powershell
+  .\install-cli.ps1
+  ```
+  _(Or via standard pip: `pip install -e ./cli`)_
+
+- **macOS / Linux**:
+  ```bash
+  chmod +x ./install-cli.sh && ./install-cli.sh
+  ```
+  _(Or via standard pip: `pip3 install -e ./cli`)_
+
+#### 2. Run Commands from Any Directory
 
 ```powershell
 # 1. Connect your GitHub token to your secure computer keychain
@@ -221,6 +236,7 @@ npm run build --prefix frontend
 
 ```
 DepShield/
+├── bin/                      # CLI launcher scripts (depshield.cmd, depshield.ps1)
 ├── backend/                  # FastAPI Python backend
 │   ├── app/
 │   │   ├── agents/bifrost.py # Bifrost by Maxim AI client integration
