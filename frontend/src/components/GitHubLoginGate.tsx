@@ -14,6 +14,7 @@ import {
   Globe,
   KeyRound,
   Lock,
+  LogOut,
   Moon,
   RefreshCw,
   ShieldCheck,
@@ -464,6 +465,33 @@ export default function GitHubLoginGate({
                   </div>
                 </div>
 
+                <div className="sw-cli-why-box">
+                  <span className="sw-cli-step-tag">Why clone the repository first?</span>
+                  <div className="sw-cli-why-grid">
+                    <div className="sw-cli-why-item">
+                      <ShieldCheck size={14} className="text-emerald shrink-0" />
+                      <div>
+                        <strong>Zero-Trust Source Audit</strong>
+                        <p>DepShield is a security pentesting agent. Cloning gives you complete source transparency to inspect sandbox boundaries, manifest-only parsers, and unit tests locally before running scans.</p>
+                      </div>
+                    </div>
+                    <div className="sw-cli-why-item">
+                      <Terminal size={14} className="text-emerald shrink-0" />
+                      <div>
+                        <strong>Self-Contained Launchers</strong>
+                        <p>The repository bundles pre-configured cross-platform PowerShell, Bash, and CMD launchers in <code>bin/</code> and automated installers that set up your PATH without touching root directories.</p>
+                      </div>
+                    </div>
+                    <div className="sw-cli-why-item">
+                      <CheckCircle2 size={14} className="text-emerald shrink-0" />
+                      <div>
+                        <strong>Clean One-Click Teardown</strong>
+                        <p>Bundled uninstaller scripts (<code>.\uninstall-cli.ps1</code> and <code>./uninstall-cli.sh</code>) allow you to completely remove PATH registrations, shims, and tokens whenever you finish.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="sw-cli-clone-step">
                   <span className="sw-cli-step-tag">Step 1: Clone repository & enter directory</span>
                   <div className="sw-code-line">
@@ -592,6 +620,59 @@ export default function GitHubLoginGate({
                     </div>
                   </div>
                 ))}
+              </div>
+
+              <div className="sw-cli-uninstall-box">
+                <div className="sw-cli-uninstall-head">
+                  <div className="sw-cli-uninstall-title">
+                    <LogOut size={14} className="text-zinc-400" />
+                    <span>Done Using the CLI? Stop, Log Out &amp; Uninstall</span>
+                  </div>
+                  <span className="sw-cli-uninstall-badge">Clean Teardown</span>
+                </div>
+                <div className="sw-cli-uninstall-grid">
+                  <div className="sw-cli-uninstall-col">
+                    <span className="sw-cli-step-tag">01 Stop Active Commands</span>
+                    <p className="sw-cli-uninstall-desc">
+                      Press <code>Ctrl + C</code> in your terminal to terminate <code>depshield monitor</code>. Single-run audits (<code>analyze</code>, <code>add</code>) exit automatically when finished.
+                    </p>
+                  </div>
+                  <div className="sw-cli-uninstall-col">
+                    <span className="sw-cli-step-tag">02 Log Out &amp; Purge Tokens</span>
+                    <p className="sw-cli-uninstall-desc">
+                      Remove GitHub credentials and web sessions from your native OS secure keychain:
+                    </p>
+                    <div className="sw-code-line">
+                      <code>depshield github logout</code>
+                      <button
+                        type="button"
+                        className="sw-copy-btn"
+                        onClick={() => copyCommand('depshield github logout')}
+                        title="Copy command"
+                      >
+                        {copiedText === 'depshield github logout' ? <Check size={12} /> : <Copy size={12} />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="sw-cli-uninstall-col">
+                    <span className="sw-cli-step-tag">03 Complete Clean Removal</span>
+                    <p className="sw-cli-uninstall-desc">
+                      Run the bundled uninstaller to wipe PATH entries, shims, and package files:
+                    </p>
+                    <div className="sw-code-line">
+                      <code>.\uninstall-cli.ps1</code>
+                      <button
+                        type="button"
+                        className="sw-copy-btn"
+                        onClick={() => copyCommand('.\\uninstall-cli.ps1')}
+                        title="Copy command"
+                      >
+                        {copiedText === '.\\uninstall-cli.ps1' ? <Check size={12} /> : <Copy size={12} />}
+                      </button>
+                    </div>
+                    <span className="sw-cli-subnote">macOS/Linux: <code>./uninstall-cli.sh</code> | Pip: <code>pip uninstall depshield</code></span>
+                  </div>
+                </div>
               </div>
             </div>
           )}

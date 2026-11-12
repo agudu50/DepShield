@@ -165,6 +165,12 @@ The web dashboard will start at **`http://localhost:5173`**.
 
 ### Option B: Using the Developer CLI (Terminal)
 
+#### Why Clone the Repository First?
+DepShield is a security pentesting agent. In a zero-trust environment, you should never run security agents blindly:
+1. **Local Zero-Trust Audit**: Cloning allows you to inspect the sandbox boundary and parser implementations yourself, confirming that proprietary source files (`.ts`, `.py`, `.env`) are strictly blocked before running any scans.
+2. **Pre-Configured Native Launchers**: The repository includes standalone PowerShell, CMD, and Bash wrappers in `bin/` and automated setup scripts (`install-cli.ps1`, `install-cli.sh`) that link your Python environment without requiring administrative rights.
+3. **One-Command Clean Teardown**: Having the local repository provides matching `uninstall-cli.ps1` and `uninstall-cli.sh` scripts to completely purge PATH registrations and keychain tokens whenever you are done.
+
 #### 1. Quick CLI Setup (One-time from cloned repository)
 Navigate inside your cloned `DepShield` repository directory:
 
@@ -181,6 +187,11 @@ Navigate inside your cloned `DepShield` repository directory:
   chmod +x ./install-cli.sh && ./install-cli.sh
   ```
   _(Or via standard pip: `pip3 install -e ./cli`)_
+
+- **Alternative (Zero-Clone Direct Install)**:
+  ```bash
+  pip install "git+https://github.com/agudu50/DepShield.git#subdirectory=cli"
+  ```
 
 Once installed, the `depshield` executable is globally registered across your system. You can run it from any directory (e.g. `C:\Testing`, desktop, or other project directories) without being inside the DepShield folder.
 
@@ -201,14 +212,21 @@ depshield add express@4.18.2
 
 # 5. Turn on background monitoring to watch for new vulnerabilities
 depshield monitor
-# 6. Log out and remove stored tokens from OS keychain
-depshield github logout
-depshield logout
 ```
 
-### Stopping & Uninstalling
-- **Stopping active monitors:** Press `Ctrl + C` in the terminal to stop `depshield monitor`. One-shot commands exit automatically when finished.
-- **Uninstalling:** Run `.\uninstall-cli.ps1` (Windows), `./uninstall-cli.sh` (macOS/Linux), or `pip uninstall depshield`.
+### Stopping, Logging Out & Uninstalling
+When you are done testing or using DepShield CLI:
+
+1. **Stop Active Commands**: Press `Ctrl + C` in the terminal to stop `depshield monitor`. One-shot commands (`analyze`, `add`, `audit`) terminate automatically when finished.
+2. **Log Out & Purge Tokens**: Remove your GitHub Personal Access Token and session keys from your OS secure keychain:
+   ```bash
+   depshield github logout
+   depshield logout
+   ```
+3. **Completely Uninstall**: Run the uninstallation script to remove all PATH registrations, shims, and packages:
+   - **Windows:** `.\uninstall-cli.ps1` (or `pip uninstall depshield`)
+   - **macOS & Linux:** `./uninstall-cli.sh` (or `pip3 uninstall depshield`)
+4. **Delete Cloned Folder**: You can safely delete the `DepShield` folder with zero leftover processes or daemons remaining.
 
 For full documentation and advanced commands, see the [CLI Reference Guide](cli/README.md).
 

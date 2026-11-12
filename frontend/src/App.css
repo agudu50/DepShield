@@ -3941,6 +3941,42 @@ body {
   display: block;
 }
 
+.sw-cli-why-box {
+  background: #121214;
+  border: 1px solid #27272a;
+  border-radius: 4px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+}
+
+.sw-cli-why-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.sw-cli-why-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  line-height: 1.45;
+}
+
+.sw-cli-why-item strong {
+  display: block;
+  color: #f4f4f5;
+  font-size: 0.82rem;
+  margin-bottom: 3px;
+}
+
+.sw-cli-why-item p {
+  margin: 0;
+  font-size: 0.77rem;
+  color: #71717a;
+  line-height: 1.4;
+}
+
 .sw-cli-clone-step,
 .sw-cli-install-options,
 .sw-cli-direct-option {
@@ -4052,6 +4088,81 @@ body {
 
 .sw-copy-btn:hover {
   color: #ffffff;
+}
+
+.sw-cli-uninstall-box {
+  background: #121214;
+  border: 1px solid #27272a;
+  border-radius: 4px;
+  padding: 20px 24px;
+  margin-top: 32px;
+}
+
+.sw-cli-uninstall-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.sw-cli-uninstall-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.sw-cli-uninstall-badge {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.68rem;
+  color: #71717a;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sw-cli-uninstall-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.sw-cli-uninstall-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sw-cli-uninstall-desc {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #a1a1aa;
+  line-height: 1.45;
+}
+
+.sw-cli-uninstall-desc code {
+  color: #10b981;
+  background: #1c1917;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+}
+
+.sw-cli-subnote {
+  font-size: 0.72rem;
+  color: #71717a;
+  margin-top: 4px;
+  display: block;
+}
+
+.sw-cli-subnote code {
+  color: #a1a1aa;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.7rem;
 }
 
 /* ── INTEGRITY PROOF & TELEMETRY STREAM ──────────────────── */
@@ -4407,6 +4518,11 @@ body {
   }
 
   .sw-cli-install-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sw-cli-why-grid,
+  .sw-cli-uninstall-grid {
     grid-template-columns: 1fr;
   }
 
@@ -6156,6 +6272,50 @@ body {
 }
 
 [data-theme="light"] .sw-cli-step-tag {
+  color: #52525b;
+}
+
+[data-theme="light"] .sw-cli-why-box {
+  background: #fbfbfa;
+  border-color: #e4e4e7;
+}
+
+[data-theme="light"] .sw-cli-why-item strong {
+  color: #09090b;
+}
+
+[data-theme="light"] .sw-cli-why-item p {
+  color: #71717a;
+}
+
+[data-theme="light"] .sw-cli-uninstall-box {
+  background: #ffffff;
+  border-color: #e4e4e7;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="light"] .sw-cli-uninstall-title {
+  color: #09090b;
+}
+
+[data-theme="light"] .sw-cli-uninstall-badge {
+  color: #71717a;
+}
+
+[data-theme="light"] .sw-cli-uninstall-desc {
+  color: #52525b;
+}
+
+[data-theme="light"] .sw-cli-uninstall-desc code {
+  color: #059669;
+  background: #f4f4f5;
+}
+
+[data-theme="light"] .sw-cli-subnote {
+  color: #71717a;
+}
+
+[data-theme="light"] .sw-cli-subnote code {
   color: #52525b;
 }
 
