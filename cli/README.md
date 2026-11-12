@@ -6,11 +6,14 @@ The command-line interface for the **DepShield AI Security Agent**, powered by *
 
 ## Installation
 
+> **Note**: Run installation commands from within your cloned `DepShield` repository root. Once installed, the `depshield` command is globally available from any directory across your system (e.g. `C:\Testing`, other projects, etc.).
+
 ### Method 1: Universal Python Package (Recommended)
 
-From the project root:
+From the `DepShield` project root:
 
 ```bash
+cd DepShield
 pip install -e ./cli
 ```
 

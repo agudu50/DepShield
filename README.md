@@ -165,20 +165,24 @@ The web dashboard will start at **`http://localhost:5173`**.
 
 ### Option B: Using the Developer CLI (Terminal)
 
-#### 1. Quick CLI Setup (One-time)
-To make `depshield` globally accessible from any directory on your computer:
+#### 1. Quick CLI Setup (One-time from cloned repository)
+Navigate inside your cloned `DepShield` repository directory:
 
-- **Windows**:
+- **Windows PowerShell**:
   ```powershell
+  cd DepShield
   .\install-cli.ps1
   ```
   _(Or via standard pip: `pip install -e ./cli`)_
 
 - **macOS / Linux**:
   ```bash
+  cd DepShield
   chmod +x ./install-cli.sh && ./install-cli.sh
   ```
   _(Or via standard pip: `pip3 install -e ./cli`)_
+
+Once installed, the `depshield` executable is globally registered across your system. You can run it from any directory (e.g. `C:\Testing`, desktop, or other project directories) without being inside the DepShield folder.
 
 #### 2. Run Commands from Any Directory
 

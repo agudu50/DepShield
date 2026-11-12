@@ -454,7 +454,7 @@ export default function GitHubLoginGate({
                     <Terminal size={14} className="text-emerald" />
                     <span>Step 0: One-Line CLI Installation</span>
                   </div>
-                  <span className="sw-cli-install-badge">Windows · macOS · Linux</span>
+                  <span className="sw-cli-install-badge">Run once inside cloned DepShield repository</span>
                 </div>
                 <div className="sw-cli-install-grid">
                   <div className="sw-cli-install-col">
@@ -500,6 +500,9 @@ export default function GitHubLoginGate({
                     </div>
                   </div>
                 </div>
+                <p className="sw-cli-install-note">
+                  Installed once, the <code>depshield</code> command is globally accessible in any directory across your system.
+                </p>
               </div>
 
               <div className="sw-steps">

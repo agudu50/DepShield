@@ -3924,6 +3924,18 @@ body {
   color: #a1a1aa;
 }
 
+.sw-cli-install-note {
+  margin: 14px 0 0 0;
+  font-size: 0.78rem;
+  color: #71717a;
+  line-height: 1.5;
+}
+
+.sw-cli-install-note code {
+  color: #10b981;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
 .sw-steps {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -6089,6 +6101,14 @@ body {
 
 [data-theme="light"] .sw-cli-install-os {
   color: #52525b;
+}
+
+[data-theme="light"] .sw-cli-install-note {
+  color: #71717a;
+}
+
+[data-theme="light"] .sw-cli-install-note code {
+  color: #059669;
 }
 
 /* 02 Workflow in Light Mode */
