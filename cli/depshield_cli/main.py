@@ -44,7 +44,7 @@ DEPSHIELD_BANNER = r"""
     |  o---||--(O)-o|  | |) / -_) '_ \ \__ \ ' \ | / -_)| |/ _' |
     |  |/ \|/  /| \ |  |___/\___| .__/ |___/_||_||_\___||_|\__,_|
     |  o---||---o--o|           |_|
-     \  \  ||  /  /    Autonomous Security Pentesting Agent
+     \  \  ||  /  /    Autonomous Vulnerability Audit Agent
       \  \ || /  /     Zero-Source-Code Ingestion | OSV-Verified
        \  \||/  /      Powered by Bifrost by Maxim AI
         \  \/  /
@@ -84,7 +84,7 @@ def build_parser() -> argparse.ArgumentParser:
     monitor_parser = commands.add_parser("monitor", help="Watch supported dependency files in the foreground")
     monitor_parser.add_argument("--once", action="store_true", help="Run a single check and exit")
 
-    audit_parser = commands.add_parser("audit", help="Pentest project dependencies locally without sending code")
+    audit_parser = commands.add_parser("audit", help="Audit project dependencies locally without sending code")
     audit_parser.add_argument("--offline", action="store_true", help="Run in strict offline zero-egress mode")
     audit_parser.add_argument("--path", type=Path, default=None, help="Target directory or manifest")
 

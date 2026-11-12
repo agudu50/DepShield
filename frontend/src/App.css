@@ -3298,7 +3298,7 @@ body {
 }
 
 /* ── 3D CANVAS & HUD OVERLAYS ────────────────────────────── */
-.pentest-3d-wrapper {
+.audit-3d-wrapper {
   position: relative;
   width: 440px;
   height: 440px;
@@ -3311,7 +3311,7 @@ body {
   transform-style: preserve-3d;
 }
 
-.pentest-3d-canvas {
+.audit-3d-canvas {
   width: 440px;
   height: 440px;
   display: block;
@@ -4545,13 +4545,13 @@ body {
     gap: 16px;
   }
 
-  .pentest-3d-wrapper {
+  .audit-3d-wrapper {
     width: 100%;
     max-width: 380px;
     height: 380px;
   }
 
-  .pentest-3d-canvas {
+  .audit-3d-canvas {
     width: 100%;
     max-width: 380px;
     height: 380px;
@@ -5993,7 +5993,7 @@ body {
 }
 
 /* 3D Holographic Canvas & HUD in Light Mode */
-[data-theme="light"] .pentest-3d-wrapper {
+[data-theme="light"] .audit-3d-wrapper {
   background: #ffffff;
   border-color: #e4e4e7;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);

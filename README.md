@@ -20,13 +20,13 @@ When developers build apps, they use hundreds of open-source packages (libraries
 You give it a target repository or a list of packages, and the agent:
 
 1. **Picks the target** and maps out every building block the project relies on.
-2. **Pentests the target on its own** by matching exact package versions against global vulnerability feeds.
+2. **Audits the target on its own** by matching exact package versions against global vulnerability feeds.
 3. **Uses Bifrost by Maxim AI** as its intelligent gateway to analyze the risk, measure how dangerous the bug is, test if attackers can reach it, and write a clear fix plan.
 4. **Guarantees zero data theft**: It only reads package names and version numbers. It never reads or steals your private code or passwords.
 
 ---
 
-## Autonomous Pentesting Agent Architecture
+## Autonomous Vulnerability Audit Agent Architecture
 
 Traditional security scanners simply give you long, confusing lists of errors. They don't think, prioritize, or explain how a hacker could actually exploit your project.
 
@@ -56,10 +56,10 @@ DepShield acts like a friendly, automated security expert:
                                                                        blast radius & safe fixes
                                                                                   |
                                                                                   v
-                                                                       +-----------------------+
-                                                                       | Clean Pentest Report  |
-                                                                       | & 1-Click Upgrade Plan|
-                                                                       +-----------------------+
+                                                                       +----------------------------+
+                                                                       | Clean Vulnerability Report |
+                                                                       | & 1-Click Upgrade Plan     |
+                                                                       +----------------------------+
 ```
 
 1. **Intelligent Security Analysis**: Instead of raw computer error codes, Bifrost translates vulnerabilities into plain explanations of how an attack works.
@@ -155,7 +155,7 @@ The web dashboard will start at **`http://localhost:5173`**.
 1. **Open the Dashboard**: Visit `http://localhost:5173` in your browser.
 2. **Connect with GitHub**: Enter a GitHub Personal Access Token (with read-only `repo` permission). Your token is stored safely in your browser only.
 3. **Choose Your Target**: Search and select any repository from your account.
-4. **Run Autonomous Pentest**:
+4. **Run Autonomous Vulnerability Audit**:
    - The agent automatically spots package files (`package.json`, `uv.lock`, etc.).
    - Click **"Run AI Security Audit"**.
    - The agent probes for known weaknesses, queries Bifrost by Maxim AI, and shows you a clean, prioritized report with safe upgrade steps.
@@ -166,10 +166,10 @@ The web dashboard will start at **`http://localhost:5173`**.
 ### Option B: Using the Developer CLI (Terminal)
 
 #### Why Clone the Repository First?
-DepShield is a security pentesting agent. In a zero-trust environment, you should never run security agents blindly:
-1. **Local Zero-Trust Audit**: Cloning allows you to inspect the sandbox boundary and parser implementations yourself, confirming that proprietary source files (`.ts`, `.py`, `.env`) are strictly blocked before running any scans.
-2. **Pre-Configured Native Launchers**: The repository includes standalone PowerShell, CMD, and Bash wrappers in `bin/` and automated setup scripts (`install-cli.ps1`, `install-cli.sh`) that link your Python environment without requiring administrative rights.
-3. **One-Command Clean Teardown**: Having the local repository provides matching `uninstall-cli.ps1` and `uninstall-cli.sh` scripts to completely purge PATH registrations and keychain tokens whenever you are done.
+DepShield is distributed directly via its open-source GitHub repository and is not yet published to the public PyPI package index (`pip install depshield` is not available on PyPI):
+1. **Not on PyPI Yet (Direct Source)**: Cloning gives you the full package on your machine so you can install and run the CLI directly from source.
+2. **Pre-Configured Native Launchers**: The repository includes standalone PowerShell, CMD, and Bash wrappers in `bin/` and automated setup scripts (`install-cli.ps1`, `install-cli.sh`) that configure your user PATH without needing PyPI or administrative rights.
+3. **Full Auditability & Clean Teardown**: Having the local repository allows you to inspect the manifest-only sandbox, run unit tests locally, and cleanly uninstall anytime with `.\uninstall-cli.ps1` or `./uninstall-cli.sh`.
 
 #### 1. Quick CLI Setup (One-time from cloned repository)
 Navigate inside your cloned `DepShield` repository directory:
@@ -204,7 +204,7 @@ depshield github login --token <YOUR_GITHUB_TOKEN>
 # 2. Check your connection status
 depshield github status
 
-# 3. Pentest any repository directly from your terminal
+# 3. Audit any repository directly from your terminal
 depshield github analyze owner/repository
 
 # 4. Safely check and add a package before downloading it

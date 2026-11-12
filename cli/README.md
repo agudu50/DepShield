@@ -6,11 +6,11 @@ The command-line interface for the **DepShield AI Security Agent**, powered by *
 
 ## Why Clone the Repository to Use the CLI?
 
-DepShield requires cloning the repository (or installing via git URL) because:
+DepShield requires cloning the repository (or installing via GitHub git URL) because:
 
-1. **Zero-Trust Source Auditability**: DepShield is an autonomous security scanner and pentesting agent. In a zero-trust model, you should never run a security tool on blind faith. Having the cloned repository locally allows you to audit the sandbox boundary (`cli/depshield_cli/`), verify that application source files (`.ts`, `.py`, `.env`) are never opened or read, and run the test suite locally (`backend/.venv/Scripts/python -m unittest discover -s cli/tests`) before connecting any repositories.
+1. **Not Published to PyPI Yet**: DepShield is currently an open-source project distributed directly via GitHub and has not been published to the public PyPI registry (`pip install depshield` is not available on PyPI). Cloning the repository provides the full source package on your machine.
 2. **Self-Contained Native Launchers**: The repository includes dedicated native launchers in `bin/` (`depshield.ps1`, `depshield.cmd`, and POSIX `depshield`) and one-line installers (`install-cli.ps1` and `install-cli.sh`) that dynamically resolve the local Python virtual environment without requiring root permissions or polluting system-wide Python environments.
-3. **One-Command Clean Teardown**: Having the local repository provides matching `uninstall-cli.ps1` and `uninstall-cli.sh` scripts that safely remove PATH entries, unregister shims, and purge OS keychain credentials when you finish testing.
+3. **Full Auditability & Clean Teardown**: Having the cloned repository locally allows you to audit the sandbox boundary (`cli/depshield_cli/`), verify that application source files (`.ts`, `.py`, `.env`) are never opened or read, run the test suite locally (`backend/.venv/Scripts/python -m unittest discover -s cli/tests`), and cleanly uninstall at any time with `.\uninstall-cli.ps1` or `./uninstall-cli.sh`.
 
 ---
 
@@ -91,7 +91,7 @@ depshield github repos
 # Inspect detected dependency manifests for a repository
 depshield github manifests owner/repo
 
-# Run the autonomous DepShield AI agent pentest on a repository
+# Run the autonomous DepShield AI agent vulnerability audit on a repository
 depshield github analyze owner/repo
 
 # Remove stored credentials

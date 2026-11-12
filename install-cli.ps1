@@ -50,7 +50,7 @@ Write-Host "     /  /| || |\  \    |   \ ___ _ __  / __| |_  (_)___ | | __| |" -
 Write-Host "    |  o---||--(O)-o|  | |) / -_) '_ \ \__ \ ' \ | / -_)| |/ _' |" -ForegroundColor Cyan
 Write-Host "    |  |/ \|/  /| \ |  |___/\___| .__/ |___/_||_||_\___||_|\__,_|" -ForegroundColor Cyan
 Write-Host "    |  o---||---o--o|           |_|" -ForegroundColor Cyan
-Write-Host "     \  \  ||  /  /    Autonomous Security Pentesting Agent" -ForegroundColor Green
+Write-Host "     \  \  ||  /  /    Autonomous Vulnerability Audit Agent" -ForegroundColor Green
 Write-Host "      \  \ || /  /     Zero-Source-Code Ingestion | OSV-Verified" -ForegroundColor Gray
 Write-Host "       \  \||/  /      Powered by Bifrost by Maxim AI" -ForegroundColor DarkCyan
 Write-Host "        \  \/  /" -ForegroundColor Cyan

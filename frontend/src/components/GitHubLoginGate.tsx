@@ -29,7 +29,7 @@ import {
   addTelemetryEvent,
   type TelemetryEvent,
 } from '../telemetry'
-import Pentest3DShield from './Pentest3DShield'
+import Audit3DShield from './Audit3DShield'
 
 interface GitHubLoginGateProps {
   onLoginSuccess: (token: string, user: GitHubUserProfile) => void
@@ -200,7 +200,7 @@ export default function GitHubLoginGate({
 
             {/* 3D Shield Visual */}
             <div className="sw-hero-right">
-              <Pentest3DShield />
+              <Audit3DShield />
             </div>
           </div>
 
@@ -245,7 +245,7 @@ export default function GitHubLoginGate({
                   {loading ? (
                     <><RefreshCw className="animate-spin" size={15} /><span>Connecting…</span></>
                   ) : (
-                    <><Github size={15} /><span>Start Pentest</span><ArrowRight size={13} /></>
+                    <><Github size={15} /><span>Start Vulnerability Audit</span><ArrowRight size={13} /></>
                   )}
                 </button>
               </div>
@@ -427,7 +427,7 @@ export default function GitHubLoginGate({
                 },
                 {
                   n: '03',
-                  title: 'The Agent Runs the Pentest',
+                  title: 'The Agent Runs the Audit',
                   desc: 'Bifrost checks every package against OSV.dev, reasons through attack paths, and writes safe upgrade plans.',
                 },
                 {
@@ -461,7 +461,7 @@ export default function GitHubLoginGate({
                 <div className="sw-cli-requirement-callout">
                   <AlertTriangle size={15} className="text-amber" />
                   <div>
-                    <strong>Prerequisite:</strong> To use the <code>depshield</code> command on your machine, you must first clone or install the DepShield repository. Once installed, it is globally available in any directory.
+                    <strong>Prerequisite:</strong> DepShield is not yet published to the public PyPI package index. To use the <code>depshield</code> command on your machine, you must first clone the repository or install directly from GitHub source. Once installed, it is globally available in any directory.
                   </div>
                 </div>
 
@@ -471,22 +471,22 @@ export default function GitHubLoginGate({
                     <div className="sw-cli-why-item">
                       <ShieldCheck size={14} className="text-emerald shrink-0" />
                       <div>
-                        <strong>Zero-Trust Source Audit</strong>
-                        <p>DepShield is a security pentesting agent. Cloning gives you complete source transparency to inspect sandbox boundaries, manifest-only parsers, and unit tests locally before running scans.</p>
+                        <strong>Not on PyPI Yet (Direct Source)</strong>
+                        <p>DepShield is currently distributed directly via its open-source GitHub repository. Cloning provides the package locally so you can install and run it without waiting for public PyPI distribution.</p>
                       </div>
                     </div>
                     <div className="sw-cli-why-item">
                       <Terminal size={14} className="text-emerald shrink-0" />
                       <div>
-                        <strong>Self-Contained Launchers</strong>
-                        <p>The repository bundles pre-configured cross-platform PowerShell, Bash, and CMD launchers in <code>bin/</code> and automated installers that set up your PATH without touching root directories.</p>
+                        <strong>Ready-to-Use Launchers</strong>
+                        <p>The repository includes pre-configured PowerShell, Bash, and CMD launchers in <code>bin/</code> and automated installers that set up your PATH without requiring administrative privileges.</p>
                       </div>
                     </div>
                     <div className="sw-cli-why-item">
                       <CheckCircle2 size={14} className="text-emerald shrink-0" />
                       <div>
-                        <strong>Clean One-Click Teardown</strong>
-                        <p>Bundled uninstaller scripts (<code>.\uninstall-cli.ps1</code> and <code>./uninstall-cli.sh</code>) allow you to completely remove PATH registrations, shims, and tokens whenever you finish.</p>
+                        <strong>Full Auditability &amp; Clean Teardown</strong>
+                        <p>You can inspect manifest-only parsers and run local tests before auditing projects, plus run <code>.\uninstall-cli.ps1</code> or <code>./uninstall-cli.sh</code> to wipe all files in seconds.</p>
                       </div>
                     </div>
                   </div>
@@ -597,7 +597,7 @@ export default function GitHubLoginGate({
                   },
                   {
                     n: '04',
-                    title: 'Autonomous Pentest',
+                    title: 'Autonomous Vulnerability Audit',
                     desc: 'Audit repository dependency trees from your terminal:',
                     cmd: 'depshield github analyze owner/repo',
                   },
@@ -817,7 +817,7 @@ export default function GitHubLoginGate({
               <div className="sw-footer-col">
                 <span className="sw-footer-col-head">Capabilities</span>
                 <ul>
-                  <li><button type="button" onClick={() => scrollTo('sw-connect')}>Autonomous Pentesting</button></li>
+                  <li><button type="button" onClick={() => scrollTo('sw-connect')}>Vulnerability Auditing</button></li>
                   <li><button type="button" onClick={() => scrollTo('sw-capabilities')}>OSV.dev Matching</button></li>
                   <li><button type="button" onClick={() => scrollTo('sw-stream')}>Live Telemetry Stream</button></li>
                   <li><button type="button" onClick={() => scrollTo('sw-workflow')}>Preflight Install Gate</button></li>
@@ -846,7 +846,7 @@ export default function GitHubLoginGate({
           <div className="sw-footer-bottom">
             <p>© {new Date().getFullYear()} DepShield AI — Powered by <strong>Bifrost by Maxim AI</strong></p>
             <div className="sw-footer-tags">
-              <span>Autonomous Pentest Agent</span>
+              <span>Autonomous Vulnerability Audit Agent</span>
               <span>Zero-Data-Theft</span>
               <span>Built on React 19 + FastAPI</span>
             </div>

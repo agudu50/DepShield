@@ -57,7 +57,7 @@ const CLI_COMMANDS: CliCommandInfo[] = [
   {
     id: 'audit',
     name: 'Offline Audit Gate',
-    desc: 'Pentest dependency trees without sending data:',
+    desc: 'Audit dependency trees without sending data:',
     cmd: 'depshield audit --offline',
   },
 ]
@@ -229,7 +229,7 @@ export default function LiveAuditMonitor() {
                 <Cpu size={15} />
                 <div>
                   <strong>Bifrost Intelligent Gateway</strong>
-                  <span>AI Agent pentests reachability without receiving repository source</span>
+                  <span>AI Agent audits reachability without receiving repository source</span>
                 </div>
               </div>
             </div>

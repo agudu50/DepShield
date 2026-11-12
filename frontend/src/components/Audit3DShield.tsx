@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Activity, Cpu, Lock, ShieldCheck, Terminal } from 'lucide-react'
 
-export default function Pentest3DShield() {
+export default function Audit3DShield() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [tilt, setTilt] = useState({ x: 0, y: 0 })
@@ -163,7 +163,7 @@ export default function Pentest3DShield() {
       ctx.fillText('270°', cx - 205, cy + 3)
       ctx.restore()
 
-      // 2. Sweeping Pentest Radar Ray
+      // 2. Sweeping Audit Radar Ray
       ctx.save()
       ctx.strokeStyle = '#2563eb'
       ctx.lineWidth = 1.6
@@ -299,7 +299,7 @@ export default function Pentest3DShield() {
   return (
     <div
       ref={containerRef}
-      className="pentest-3d-wrapper"
+      className="audit-3d-wrapper"
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       style={{
@@ -307,7 +307,7 @@ export default function Pentest3DShield() {
       }}
     >
       {/* 3D Holographic Canvas */}
-      <canvas ref={canvasRef} className="pentest-3d-canvas" />
+      <canvas ref={canvasRef} className="audit-3d-canvas" />
 
       {/* Top Left: Target Probe Status */}
       <div className="hud-card hud-top-left">
