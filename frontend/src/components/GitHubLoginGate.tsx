@@ -163,9 +163,9 @@ export default function GitHubLoginGate({
 
           {/* Giant headline */}
           <h1 className="sw-hero-title">
-            An Agent That<br />
-            Pentests Your<br />
-            Repos On Its Own.
+            Autonomous<br />
+            Supply Chain Defense<br />
+            Powered by Bifrost.
           </h1>
 
           {/* Two column split: description + 3D */}

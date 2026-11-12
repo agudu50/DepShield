@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import logging
 import re
 from dataclasses import dataclass, field
 from typing import Any, Literal
@@ -9,6 +10,8 @@ from urllib.parse import quote
 import httpx
 
 from app.agents.bifrost import BifrostClient, BifrostError
+
+logger = logging.getLogger(__name__)
 from app.domain.scanning.service import (
     AdvisoryServiceError,
     DependencyRecord,
@@ -116,6 +119,10 @@ class GitHubService:
 
     def _headers(self, token: str, accept: str = "application/vnd.github.v3+json") -> dict[str, str]:
         clean_token = token.strip()
+        if clean_token.startswith("Bearer "):
+            clean_token = clean_token[7:].strip()
+        elif clean_token.startswith("token "):
+            clean_token = clean_token[6:].strip()
         if not clean_token:
             raise GitHubError("GitHub access token is required", 401)
         return {
@@ -137,7 +144,7 @@ class GitHubService:
     async def get_user_profile(self, token: str) -> GitHubUserProfile:
         headers = self._headers(token)
         try:
-            async with httpx.AsyncClient(timeout=10.0, transport=self._transport) as client:
+            async with httpx.AsyncClient(timeout=20.0, transport=self._transport, follow_redirects=True) as client:
                 res = await client.get(f"{GITHUB_API_BASE}/user", headers=headers)
                 if res.status_code == 401:
                     raise GitHubError("Invalid or expired GitHub token", 401)
@@ -153,6 +160,7 @@ class GitHubService:
                     total_private_repos=data.get("total_private_repos"),
                 )
         except httpx.HTTPError as exc:
+            logger.warning("GitHub API /user request failed: %s (%s)", type(exc).__name__, exc)
             raise GitHubError(f"Failed to communicate with GitHub: {exc}", 502) from exc
 
     async def list_repositories(self, token: str, page: int = 1, per_page: int = 50) -> list[GitHubRepository]:

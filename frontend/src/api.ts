@@ -215,13 +215,17 @@ export async function getGitHubUser(rawToken: string): Promise<GitHubUserProfile
     if (response.status === 401) {
       throw new Error('Invalid or expired GitHub token. Please verify your token on GitHub.')
     }
-    const payload: unknown = await response.json().catch(() => null)
-    if (payload && typeof payload === 'object' && 'detail' in payload && typeof payload.detail === 'string') {
-      throw new Error(payload.detail)
+    // Only throw explicit client errors (< 500). If backend gives 502/503/504 (upstream DNS/network issue),
+    // smoothly fall through to direct browser fetch below.
+    if (response.status < 500) {
+      const payload: unknown = await response.json().catch(() => null)
+      if (payload && typeof payload === 'object' && 'detail' in payload && typeof payload.detail === 'string') {
+        throw new Error(payload.detail)
+      }
     }
   } catch (err) {
-    // If backend replied with explicit auth error, throw it
-    if (err instanceof Error && !err.message.toLowerCase().includes('fetch')) {
+    // If backend replied with explicit token error, throw it; otherwise let browser fallback handle it
+    if (err instanceof Error && err.message.toLowerCase().includes('invalid or expired')) {
       throw err
     }
   }
