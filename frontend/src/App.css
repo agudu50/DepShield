@@ -12,7 +12,7 @@ body {
   padding: 0;
   background-color: #050507;
   color: #f4f4f5;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -21,7 +21,8 @@ body {
   min-height: 100vh;
   background-color: #050507;
   color: #f4f4f5;
-  padding: 20px 24px 64px;
+  padding: 24px 32px 64px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 .loading-shell {
@@ -37,152 +38,98 @@ body {
   align-items: center;
   gap: 16px;
   color: #a1a1aa;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.85rem;
+  font-size: 0.88rem;
 }
 
-/* ── TOPBAR ─────────────────────────────────────────────────── */
-.topbar {
+/* ── TWO-TIER MODERN TOPBAR ─────────────────────────────────── */
+.db-topbar {
   max-width: 1360px;
-  margin: 0 auto 28px;
+  margin: 0 auto 32px;
+  background: #09090d;
+  border: 1px solid #18181b;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+}
+
+.db-topbar-upper {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
   padding: 14px 20px;
-  border: 1px solid #18181b;
-  border-radius: 4px;
-  background: #09090d;
+  border-bottom: 1px solid #141418;
+  gap: 16px;
 }
 
-.brand-wrap {
+.db-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
-.brand-mark {
-  width: 34px;
-  height: 34px;
+.db-brand-icon {
+  width: 30px;
+  height: 30px;
+  background: #050507;
+  border: 1px solid #27272a;
   border-radius: 3px;
   display: grid;
   place-items: center;
-  background: #050507;
-  color: #ffffff;
-  border: 1px solid #27272a;
-}
-
-.eyebrow {
-  margin: 0;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.65rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #71717a;
-}
-
-.topbar h1 {
-  margin: 2px 0 0;
-  font-size: 1.1rem;
-  font-weight: 800;
-  letter-spacing: -0.01em;
   color: #ffffff;
 }
 
-/* Top Navigation Tabs */
-.topnav {
+.db-brand-text {
   display: flex;
   align-items: center;
-  gap: 6px;
-}
-
-.nav-tab-btn {
-  background: transparent;
-  border: 1px solid transparent;
-  color: #71717a;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.78rem;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  padding: 7px 12px;
-  border-radius: 3px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
   gap: 8px;
-  transition: all 0.15s ease;
 }
 
-.nav-tab-btn:hover {
+.db-brand-name {
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
   color: #ffffff;
-  border-color: #27272a;
 }
 
-.nav-tab-btn.active {
-  background: #ffffff;
-  color: #050507;
-  font-weight: 700;
-  border-color: #ffffff;
+.db-brand-divider {
+  color: #3f3f46;
+  font-size: 0.82rem;
 }
 
-.nav-tab-btn.active .tab-pill {
-  background: #050507;
-  color: #ffffff;
-  border-color: #050507;
-}
-
-.tab-pill {
-  padding: 1px 6px;
-  border-radius: 2px;
-  font-size: 0.65rem;
-  font-weight: 700;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  border: 1px solid transparent;
-}
-
-.tab-pill.alert {
-  background: #2a0b0e;
-  color: #f87171;
-  border: 1px solid #7f1d1d;
-}
-
-.live-pulse-pill {
-  background: #061c14;
-  color: #10b981;
-  border: 1px solid #064e3b;
-  font-size: 0.62rem;
+.db-brand-tag {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.68rem;
   letter-spacing: 0.08em;
+  color: #a1a1aa;
 }
 
-/* Topbar Right Tools */
-.topbar-right-wrap {
+.db-topbar-actions {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.topbar-security-pill {
+.db-security-pill {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   background: #050507;
   border: 1px solid #27272a;
-  padding: 6px 12px;
+  padding: 5px 12px;
   border-radius: 3px;
-  font-size: 0.72rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
   font-weight: 500;
   color: #a1a1aa;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
-.topbar-security-pill:hover {
+.db-security-pill:hover {
   border-color: #3f3f46;
   color: #ffffff;
 }
 
-.pill-dot-active {
+.db-live-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -190,68 +137,127 @@ body {
   box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
 }
 
-.user-profile-widget {
-  display: flex;
-  align-items: center;
-}
-
-.profile-pill {
+.db-profile-pill {
   display: flex;
   align-items: center;
   gap: 8px;
   background: #050507;
   border: 1px solid #27272a;
   border-radius: 3px;
-  padding: 4px 8px;
+  padding: 4px 10px;
 }
 
-.profile-thumb {
-  width: 26px;
-  height: 26px;
+.db-profile-avatar {
+  width: 22px;
+  height: 22px;
   border-radius: 2px;
   border: 1px solid #3f3f46;
+  object-fit: cover;
 }
 
-.profile-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.profile-name {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.78rem;
-  font-weight: 700;
+.db-profile-handle {
+  font-size: 0.82rem;
+  font-weight: 600;
   color: #ffffff;
-  line-height: 1.1;
 }
 
-.profile-sub {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.65rem;
+.db-profile-count {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.68rem;
   color: #71717a;
+  border-left: 1px solid #27272a;
+  padding-left: 8px;
 }
 
-.icon-logout-btn {
+.db-logout-btn {
   background: transparent;
   border: none;
   color: #71717a;
   cursor: pointer;
-  padding: 4px;
-  border-radius: 2px;
+  padding: 3px;
   display: grid;
   place-items: center;
   transition: color 0.15s ease;
+  margin-left: 4px;
 }
 
-.icon-logout-btn:hover {
+.db-logout-btn:hover {
   color: #f87171;
+}
+
+/* Horizontal Nav Bar */
+.db-nav-bar {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.db-nav-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.db-nav-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #71717a;
+  font-size: 0.84rem;
+  font-weight: 500;
+  padding: 10px 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.db-nav-btn:hover {
+  color: #ffffff;
+  border-bottom-color: #3f3f46;
+}
+
+.db-nav-btn.active {
+  color: #ffffff;
+  font-weight: 600;
+  border-bottom-color: #ffffff;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.db-nav-badge {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 2px;
+}
+
+.db-nav-badge.alert {
+  background: #2a0b0e;
+  color: #f87171;
+  border: 1px solid #7f1d1d;
+}
+
+.db-nav-badge.live {
+  background: #061c14;
+  color: #10b981;
+  border: 1px solid #064e3b;
+  letter-spacing: 0.06em;
+}
+
+/* Legacy Topbar Compatibility */
+.topbar {
+  display: none;
 }
 
 /* ── GLOBAL BUTTONS ─────────────────────────────────────────── */
 .primary-button,
 .secondary-button {
   border-radius: 3px;
-  font: inherit;
+  font-family: inherit;
   font-size: 0.84rem;
   cursor: pointer;
   display: inline-flex;
@@ -299,15 +305,14 @@ body {
 .small-button,
 .btn-small {
   padding: 5px 10px;
-  font-size: 0.75rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.78rem;
 }
 
 .text-button {
   background: transparent;
   border: none;
   color: #a1a1aa;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   cursor: pointer;
   padding: 0;
   text-decoration: underline;
@@ -359,9 +364,9 @@ body {
 
 .stat-label {
   display: block;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
+  font-size: 0.74rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #71717a;
   margin-bottom: 8px;
@@ -375,6 +380,7 @@ body {
 }
 
 .stat-value-row strong {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 2rem;
   font-weight: 800;
   color: #ffffff;
@@ -387,9 +393,9 @@ body {
 }
 
 .delta {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.7rem;
-  padding: 2px 7px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 2px 8px;
   border-radius: 2px;
   background: #061c14;
   border: 1px solid #064e3b;
@@ -439,9 +445,8 @@ body {
 }
 
 .panel-tag {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.7rem;
-  font-weight: 700;
+  font-size: 0.72rem;
+  font-weight: 600;
   padding: 3px 8px;
   border-radius: 2px;
   border: 1px solid #27272a;
@@ -467,8 +472,7 @@ body {
   gap: 6px;
   padding: 4px 10px;
   border-radius: 2px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 
@@ -513,10 +517,9 @@ body {
 
 .pane-header-title h3 {
   margin: 0;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #ffffff;
   display: flex;
@@ -544,8 +547,7 @@ body {
   border-radius: 3px;
   padding: 8px 12px 8px 32px;
   color: #ffffff;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   outline: none;
   transition: border-color 0.15s ease;
 }
@@ -594,7 +596,7 @@ body {
 }
 
 .repo-name {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-weight: 700;
   color: #ffffff;
   font-size: 0.84rem;
@@ -602,8 +604,7 @@ body {
 }
 
 .visibility-badge {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.65rem;
+  font-size: 0.68rem;
   padding: 2px 6px;
   border-radius: 2px;
   background: #141418;
@@ -630,8 +631,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   color: #52525b;
 }
 
@@ -665,10 +665,9 @@ body {
 
 .card-subhead h4 {
   margin: 0;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
@@ -711,14 +710,13 @@ body {
 }
 
 .manifest-path {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.8rem;
   color: #e4e4e7;
 }
 
 .manifest-meta {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   color: #71717a;
 }
 
@@ -730,9 +728,8 @@ body {
 }
 
 .prompt-label {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.72rem;
-  letter-spacing: 0.06em;
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #a1a1aa;
   display: flex;
@@ -842,8 +839,7 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   color: #71717a;
 }
 
@@ -853,10 +849,9 @@ body {
   gap: 6px;
   padding: 4px 10px;
   border-radius: 2px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
 }
 
 .risk-critical,
@@ -894,7 +889,7 @@ body {
 }
 
 .metric-num {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 1.6rem;
   font-weight: 800;
   color: #ffffff;
@@ -906,9 +901,8 @@ body {
 }
 
 .metric-label {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: #71717a;
   margin-top: 6px;
@@ -929,9 +923,9 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #ffffff;
 }
@@ -958,9 +952,9 @@ body {
 
 .recommendations-box h5 {
   margin: 0 0 8px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.75rem;
-  letter-spacing: 0.06em;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #a1a1aa;
 }
@@ -991,9 +985,9 @@ body {
 /* Findings Table */
 .findings-section h4 {
   margin: 0 0 12px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.85rem;
-  letter-spacing: 0.06em;
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #ffffff;
 }
@@ -1016,9 +1010,9 @@ body {
   background: #0a0a0d;
   padding: 10px 14px;
   color: #71717a;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.7rem;
-  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   border-bottom: 1px solid #1f1f23;
 }
@@ -1039,15 +1033,15 @@ body {
 
 .pkg-name {
   color: #ffffff;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-weight: 600;
 }
 
 .status-pill {
   padding: 2px 7px;
   border-radius: 2px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.72rem;
+  font-weight: 500;
 }
 
 .status-pill.checked {
@@ -1075,7 +1069,7 @@ body {
   border-radius: 2px;
   padding: 2px 7px;
   font-size: 0.72rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
@@ -1090,8 +1084,8 @@ body {
 
 .clean-pill {
   color: #10b981;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.75rem;
+  font-weight: 500;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -1136,7 +1130,7 @@ body {
   margin: 0;
   font-size: 1.05rem;
   color: #ffffff;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
 }
 
 .version-pill {
@@ -1145,7 +1139,7 @@ body {
   padding: 2px 8px;
   border-radius: 2px;
   color: #a1a1aa;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.75rem;
 }
 
@@ -1155,7 +1149,7 @@ body {
   color: #f87171;
   border-radius: 2px;
   padding: 3px 9px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.75rem;
   text-decoration: none;
   display: inline-flex;
@@ -1195,8 +1189,8 @@ body {
 
 .meta-label {
   color: #52525b;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.72rem;
+  font-size: 0.74rem;
+  font-weight: 500;
   text-transform: uppercase;
 }
 
@@ -1205,15 +1199,15 @@ body {
   border: 1px solid #27272a;
   padding: 2px 7px;
   border-radius: 2px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
   color: #a1a1aa;
   font-size: 0.72rem;
 }
 
 .remediation-guidance small {
   color: #10b981;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
+  font-weight: 500;
 }
 
 .empty-findings-state {
@@ -1277,10 +1271,9 @@ body {
   color: #10b981;
   padding: 3px 10px;
   border-radius: 2px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   margin-bottom: 12px;
 }
 
@@ -1300,8 +1293,7 @@ body {
 }
 
 .simulate-btn {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   gap: 8px;
 }
 
@@ -1322,7 +1314,7 @@ body {
 }
 
 .stat-value {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 1.25rem;
   font-weight: 800;
   color: #ffffff;
@@ -1330,9 +1322,9 @@ body {
 }
 
 .stat-pill .stat-label {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.65rem;
-  letter-spacing: 0.08em;
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: #71717a;
   margin: 0;
@@ -1370,10 +1362,9 @@ body {
 
 .guardrail-header h4 {
   margin: 0;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #ffffff;
 }
@@ -1444,8 +1435,8 @@ body {
   background: transparent;
   border: 1px solid transparent;
   color: #71717a;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 500;
   padding: 4px 10px;
   border-radius: 2px;
   cursor: pointer;
@@ -1471,7 +1462,7 @@ body {
   gap: 12px;
   max-height: 520px;
   overflow-y: auto;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.75rem;
 }
 
@@ -1549,7 +1540,7 @@ body {
   padding: 10px 16px;
   background: #0c0c0f;
   border-top: 1px solid #18181b;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.72rem;
   color: #71717a;
 }
@@ -1573,9 +1564,9 @@ body {
 .scan-form label {
   display: grid;
   gap: 6px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.75rem;
-  letter-spacing: 0.06em;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #a1a1aa;
 }
@@ -1588,7 +1579,7 @@ body {
   border-radius: 3px;
   padding: 9px 12px;
   color: #ffffff;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.85rem;
   outline: none;
   transition: border-color 0.15s ease;
@@ -1636,8 +1627,7 @@ body {
 }
 
 .workspace-user {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   color: #a1a1aa;
   margin: 0;
 }
@@ -1702,7 +1692,7 @@ body {
 }
 
 .report-card-item strong {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 1.8rem;
   font-weight: 800;
   color: #ffffff;
@@ -1725,9 +1715,9 @@ body {
 
 .workflow-card-inset h4 {
   margin: 0 0 16px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.85rem;
-  letter-spacing: 0.08em;
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #ffffff;
 }
@@ -1806,18 +1796,7 @@ body {
 }
 
 /* ── RESPONSIVE DASHBOARD ────────────────────────────────────── */
-@media (max-width: 1100px) {
-  .topbar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
-  }
-
-  .topnav {
-    overflow-x: auto;
-    padding-bottom: 4px;
-  }
-
+@media (max-width: 1024px) {
   .gh-dashboard-grid,
   .telemetry-body-grid {
     grid-template-columns: 1fr;
@@ -1835,6 +1814,17 @@ body {
 }
 
 @media (max-width: 640px) {
+  .db-topbar-upper {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .db-topbar-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
   .stats-grid,
   .report-grid,
   .telemetry-stats-row,
@@ -1847,12 +1837,8 @@ body {
   .app-shell {
     padding: 14px 12px 40px;
   }
-
-  .topbar-right-wrap {
-    flex-direction: column;
-    align-items: stretch;
-  }
 }
+
 
 /* ==========================================================================
    Seesaw Editorial Design: Minimalist, Typographic, Dark-Mode Architecture

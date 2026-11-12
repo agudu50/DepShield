@@ -233,118 +233,116 @@ export default function App() {
   return (
     <div className="app-shell">
       {/* Topbar Header */}
-      <header className="topbar">
-        <div className="brand-wrap">
-          <div className="brand-mark">
-            <Shield size={20} />
+      <header className="db-topbar">
+        <div className="db-topbar-upper">
+          <div className="db-brand">
+            <div className="db-brand-icon">
+              <Shield size={16} />
+            </div>
+            <div className="db-brand-text">
+              <span className="db-brand-name">DEPSHIELD</span>
+              <span className="db-brand-divider">/</span>
+              <span className="db-brand-tag">BIFROST BY MAXIM AI</span>
+            </div>
           </div>
-          <div>
-            <p className="eyebrow">Bifrost by Maxim AI</p>
-            <h1>DepShield AI</h1>
+
+          <div className="db-topbar-actions">
+            <div
+              className="db-security-pill"
+              title="Deterministic isolation: only manifests read, zero source code access"
+              onClick={() => setActiveTab('telemetry')}
+              role="button"
+              tabIndex={0}
+            >
+              <ShieldCheck size={13} className="text-emerald" />
+              <span>Zero Code Retention</span>
+              <span className="db-live-dot" />
+            </div>
+
+            {user ? (
+              <div className="db-profile-pill">
+                <img src={user.avatar_url} alt="" className="db-profile-avatar" />
+                <span className="db-profile-handle">@{user.login}</span>
+                <span className="db-profile-count">{user.public_repos} repos</span>
+                <button
+                  type="button"
+                  className="db-logout-btn"
+                  onClick={handleLogout}
+                  title="Disconnect GitHub account"
+                >
+                  <LogOut size={13} />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="secondary-button btn-small"
+                onClick={() => setShowWorkspaceOnly(false)}
+              >
+                <Github size={13} /> Connect GitHub
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Dashboard Section Navigation Tabs */}
-        <nav className="topnav" aria-label="Dashboard navigation">
+        {/* Horizontal Navigation Tabs */}
+        <nav className="db-nav-bar" aria-label="Dashboard navigation">
           <button
             type="button"
-            className={`nav-tab-btn ${activeTab === 'agent' ? 'active' : ''}`}
+            className={`db-nav-btn ${activeTab === 'agent' ? 'active' : ''}`}
             onClick={() => setActiveTab('agent')}
           >
-            <Sparkles size={15} />
+            <Sparkles size={14} />
             <span>AI Agent & Repos</span>
           </button>
 
           <button
             type="button"
-            className={`nav-tab-btn ${activeTab === 'findings' ? 'active' : ''}`}
+            className={`db-nav-btn ${activeTab === 'findings' ? 'active' : ''}`}
             onClick={() => setActiveTab('findings')}
           >
-            <ShieldAlert size={15} />
+            <ShieldAlert size={14} />
             <span>Findings</span>
-            {matchedVulns > 0 && <span className="tab-pill alert">{matchedVulns}</span>}
+            {matchedVulns > 0 && <span className="db-nav-badge alert">{matchedVulns}</span>}
           </button>
 
           <button
             type="button"
-            className={`nav-tab-btn ${activeTab === 'telemetry' ? 'active' : ''}`}
+            className={`db-nav-btn ${activeTab === 'telemetry' ? 'active' : ''}`}
             onClick={() => setActiveTab('telemetry')}
           >
-            <Activity size={15} />
+            <Activity size={14} />
             <span>Live Audit Stream</span>
-            <span className="tab-pill live-pulse-pill">LIVE</span>
+            <span className="db-nav-badge live">LIVE</span>
           </button>
 
           <button
             type="button"
-            className={`nav-tab-btn ${activeTab === 'scanner' ? 'active' : ''}`}
+            className={`db-nav-btn ${activeTab === 'scanner' ? 'active' : ''}`}
             onClick={() => setActiveTab('scanner')}
           >
-            <FileCode size={15} />
+            <FileCode size={14} />
             <span>Manual Scanner</span>
           </button>
 
           <button
             type="button"
-            className={`nav-tab-btn ${activeTab === 'workspace' ? 'active' : ''}`}
+            className={`db-nav-btn ${activeTab === 'workspace' ? 'active' : ''}`}
             onClick={() => setActiveTab('workspace')}
           >
-            <Users size={15} />
+            <Users size={14} />
             <span>Workspace</span>
           </button>
 
           <button
             type="button"
-            className={`nav-tab-btn ${activeTab === 'reports' ? 'active' : ''}`}
+            className={`db-nav-btn ${activeTab === 'reports' ? 'active' : ''}`}
             onClick={() => setActiveTab('reports')}
           >
-            <BarChart3 size={15} />
+            <BarChart3 size={14} />
             <span>Reports</span>
           </button>
         </nav>
-
-        {/* Right Tools & Connected Profile Bar */}
-        <div className="topbar-right-wrap">
-          <div
-            className="topbar-security-pill"
-            title="Deterministic isolation: only manifests read, zero source code access"
-            onClick={() => setActiveTab('telemetry')}
-            role="button"
-            tabIndex={0}
-          >
-            <ShieldCheck size={14} className="text-emerald" />
-            <span>Zero Code Retention</span>
-            <span className="pill-dot-active" />
-          </div>
-
-          <div className="user-profile-widget">
-          {user ? (
-            <div className="profile-pill">
-              <img src={user.avatar_url} alt={user.login} className="profile-thumb" />
-              <div className="profile-text">
-                <span className="profile-name">@{user.login}</span>
-                <span className="profile-sub">{user.public_repos} repos</span>
-              </div>
-              <button
-                type="button"
-                className="icon-logout-btn"
-                onClick={handleLogout}
-                title="Disconnect GitHub account"
-              >
-                <LogOut size={15} />
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              className="secondary-button btn-small"
-              onClick={() => setShowWorkspaceOnly(false)}
-            >
-              <Github size={14} /> Connect GitHub
-            </button>
-          )}
-        </div>
-      </div>
       </header>
 
       {/* Main Dashboard Panel */}
