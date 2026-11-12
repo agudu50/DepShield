@@ -447,51 +447,107 @@ export default function GitHubLoginGate({
           )}
 
           {workflowTab === 'cli' && (
-            <div className="sw-steps">
-              {[
-                {
-                  n: '01',
-                  title: 'Install & Authenticate',
-                  desc: 'Store your GitHub credentials safely in your OS keyring:',
-                  cmd: 'depshield github login --token <PAT>',
-                },
-                {
-                  n: '02',
-                  title: 'Safe Preflight Installs',
-                  desc: 'Check packages against OSV before they hit your disk:',
-                  cmd: 'depshield add express@4.18.2',
-                },
-                {
-                  n: '03',
-                  title: 'Start the Background Monitor',
-                  desc: 'Stream live telemetry events to the web dashboard:',
-                  cmd: 'depshield monitor',
-                },
-                {
-                  n: '04',
-                  title: 'Run a Full Pentest',
-                  desc: 'Autonomous dependency audit directly from your terminal:',
-                  cmd: 'depshield github analyze owner/repo',
-                },
-              ].map((step) => (
-                <div key={step.n} className="sw-step">
-                  <span className="sw-step-num">{step.n}</span>
-                  <div className="sw-step-body">
-                    <h4 className="sw-step-title">{step.title}</h4>
-                    <p className="sw-step-desc">{step.desc}</p>
+            <div className="sw-cli-wrap">
+              <div className="sw-cli-install-box">
+                <div className="sw-cli-install-head">
+                  <div className="sw-cli-install-title">
+                    <Terminal size={14} className="text-emerald" />
+                    <span>Step 0: One-Line CLI Installation</span>
+                  </div>
+                  <span className="sw-cli-install-badge">Windows · macOS · Linux</span>
+                </div>
+                <div className="sw-cli-install-grid">
+                  <div className="sw-cli-install-col">
+                    <span className="sw-cli-install-os">Universal (pip / pipx)</span>
                     <div className="sw-code-line">
-                      <code>{step.cmd}</code>
+                      <code>pip install -e ./cli</code>
                       <button
                         type="button"
                         className="sw-copy-btn"
-                        onClick={() => copyCommand(step.cmd)}
+                        onClick={() => copyCommand('pip install -e ./cli')}
+                        title="Copy command"
                       >
-                        {copiedText === step.cmd ? <Check size={12} /> : <Copy size={12} />}
+                        {copiedText === 'pip install -e ./cli' ? <Check size={12} /> : <Copy size={12} />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="sw-cli-install-col">
+                    <span className="sw-cli-install-os">Windows PowerShell</span>
+                    <div className="sw-code-line">
+                      <code>.\install-cli.ps1</code>
+                      <button
+                        type="button"
+                        className="sw-copy-btn"
+                        onClick={() => copyCommand('.\\install-cli.ps1')}
+                        title="Copy command"
+                      >
+                        {copiedText === '.\\install-cli.ps1' ? <Check size={12} /> : <Copy size={12} />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="sw-cli-install-col">
+                    <span className="sw-cli-install-os">macOS & Linux</span>
+                    <div className="sw-code-line">
+                      <code>./install-cli.sh</code>
+                      <button
+                        type="button"
+                        className="sw-copy-btn"
+                        onClick={() => copyCommand('./install-cli.sh')}
+                        title="Copy command"
+                      >
+                        {copiedText === './install-cli.sh' ? <Check size={12} /> : <Copy size={12} />}
                       </button>
                     </div>
                   </div>
                 </div>
-              ))}
+              </div>
+
+              <div className="sw-steps">
+                {[
+                  {
+                    n: '01',
+                    title: 'Authenticate GitHub',
+                    desc: 'Store your GitHub credentials safely in your OS keyring:',
+                    cmd: 'depshield github login --token <PAT>',
+                  },
+                  {
+                    n: '02',
+                    title: 'Safe Preflight Installs',
+                    desc: 'Check packages against OSV before they hit your disk:',
+                    cmd: 'depshield add express@4.18.2',
+                  },
+                  {
+                    n: '03',
+                    title: 'Start Foreground Monitor',
+                    desc: 'Stream live telemetry events to the web dashboard:',
+                    cmd: 'depshield monitor',
+                  },
+                  {
+                    n: '04',
+                    title: 'Autonomous Pentest',
+                    desc: 'Audit repository dependency trees from your terminal:',
+                    cmd: 'depshield github analyze owner/repo',
+                  },
+                ].map((step) => (
+                  <div key={step.n} className="sw-step">
+                    <span className="sw-step-num">{step.n}</span>
+                    <div className="sw-step-body">
+                      <h4 className="sw-step-title">{step.title}</h4>
+                      <p className="sw-step-desc">{step.desc}</p>
+                      <div className="sw-code-line">
+                        <code>{step.cmd}</code>
+                        <button
+                          type="button"
+                          className="sw-copy-btn"
+                          onClick={() => copyCommand(step.cmd)}
+                        >
+                          {copiedText === step.cmd ? <Check size={12} /> : <Copy size={12} />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -652,6 +708,7 @@ export default function GitHubLoginGate({
               <div className="sw-footer-col">
                 <span className="sw-footer-col-head">CLI Commands</span>
                 <ul>
+                  <li><code>pip install -e ./cli</code></li>
                   <li><code>depshield github login</code></li>
                   <li><code>depshield add &lt;pkg&gt;</code></li>
                   <li><code>depshield monitor</code></li>

@@ -3867,6 +3867,63 @@ body {
   color: #050507;
 }
 
+.sw-cli-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+}
+
+.sw-cli-install-box {
+  background: #09090d;
+  border: 1px solid #27272a;
+  border-radius: 4px;
+  padding: 20px 24px;
+}
+
+.sw-cli-install-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.sw-cli-install-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.sw-cli-install-badge {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.68rem;
+  color: #71717a;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sw-cli-install-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.sw-cli-install-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sw-cli-install-os {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.72rem;
+  color: #a1a1aa;
+}
+
 .sw-steps {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -4293,6 +4350,10 @@ body {
   }
 
   .sw-caps-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sw-cli-install-grid {
     grid-template-columns: 1fr;
   }
 
@@ -6010,6 +6071,24 @@ body {
   background-color: #f4f4f5;
   border-color: #e4e4e7;
   color: #3f3f46;
+}
+
+[data-theme="light"] .sw-cli-install-box {
+  background: #ffffff;
+  border-color: #e4e4e7;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="light"] .sw-cli-install-title {
+  color: #09090b;
+}
+
+[data-theme="light"] .sw-cli-install-badge {
+  color: #71717a;
+}
+
+[data-theme="light"] .sw-cli-install-os {
+  color: #52525b;
 }
 
 /* 02 Workflow in Light Mode */

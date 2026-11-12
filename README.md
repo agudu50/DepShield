@@ -199,6 +199,8 @@ depshield add express@4.18.2
 depshield monitor
 ```
 
+For full documentation and advanced commands, see the [CLI Reference Guide](cli/README.md).
+
 ---
 
 ## Live Real-Time Activity Monitoring
