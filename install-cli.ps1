@@ -27,18 +27,37 @@ try {
 # 2. Fallback: Register bin\ to User PATH
 if (-not $installed) {
     Write-Host "Registering $binDir to User PATH..." -ForegroundColor Yellow
-    $userPath = [Environment]::GetEnvironmentVariable("Path", [EnvironmentVariableTarget]::User)
-    if ($userPath -notlike "*$binDir*") {
-        $newPath = if ($userPath) { "$userPath;$binDir" } else { $binDir }
-        [Environment]::SetEnvironmentVariable("Path", $newPath, [EnvironmentVariableTarget]::User)
+    try {
+        $userPath = [Environment]::GetEnvironmentVariable("Path", [EnvironmentVariableTarget]::User)
+        if ($userPath -notlike "*$binDir*") {
+            $newPath = if ($userPath) { "$userPath;$binDir" } else { $binDir }
+            [Environment]::SetEnvironmentVariable("Path", $newPath, [EnvironmentVariableTarget]::User)
+            $env:Path = "$env:Path;$binDir"
+            Write-Host "Added $binDir to User PATH." -ForegroundColor Green
+        } else {
+            Write-Host "$binDir is already registered in User PATH." -ForegroundColor Green
+        }
+    } catch {
         $env:Path = "$env:Path;$binDir"
-        Write-Host "Added $binDir to User PATH." -ForegroundColor Green
-    } else {
-        Write-Host "$binDir is already registered in User PATH." -ForegroundColor Green
+        Write-Host "Configured $binDir in active PATH session." -ForegroundColor Green
     }
 }
 
-Write-Host "`nSetup complete! You can now run:" -ForegroundColor Cyan
-Write-Host "  depshield --version" -ForegroundColor White
+Write-Host "`n"
+Write-Host "       /\      /\" -ForegroundColor Cyan
+Write-Host "      /  \____/  \      ___             ___ _     _      _     _" -ForegroundColor Cyan
+Write-Host "     /  /| || |\  \    |   \ ___ _ __  / __| |_  (_)___ | | __| |" -ForegroundColor Cyan
+Write-Host "    |  o---||--(O)-o|  | |) / -_) '_ \ \__ \ ' \ | / -_)| |/ _' |" -ForegroundColor Cyan
+Write-Host "    |  |/ \|/  /| \ |  |___/\___| .__/ |___/_||_||_\___||_|\__,_|" -ForegroundColor Cyan
+Write-Host "    |  o---||---o--o|           |_|" -ForegroundColor Cyan
+Write-Host "     \  \  ||  /  /    Autonomous Security Pentesting Agent" -ForegroundColor Green
+Write-Host "      \  \ || /  /     Zero-Source-Code Ingestion | OSV-Verified" -ForegroundColor Gray
+Write-Host "       \  \||/  /      Powered by Bifrost by Maxim AI" -ForegroundColor DarkCyan
+Write-Host "        \  \/  /" -ForegroundColor Cyan
+Write-Host "         \____/" -ForegroundColor Cyan
+Write-Host "`nDepShield CLI installed and active!" -ForegroundColor Green
+Write-Host "You can run commands from any directory across your system:" -ForegroundColor Gray
+Write-Host "  depshield --help" -ForegroundColor White
 Write-Host "  depshield github status" -ForegroundColor White
+Write-Host "  depshield github login --token <YOUR_PAT>" -ForegroundColor White
 

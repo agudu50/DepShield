@@ -37,9 +37,27 @@ from depshield_cli.github import GitHubCliClient
 DEFAULT_API_URL = "http://localhost:8000"
 DEFAULT_DASHBOARD_URL = "http://localhost:5173"
 
+DEPSHIELD_BANNER = r"""
+       /\      /\
+      /  \____/  \      ___             ___ _     _      _     _
+     /  /| || |\  \    |   \ ___ _ __  / __| |_  (_)___ | | __| |
+    |  o---||--(O)-o|  | |) / -_) '_ \ \__ \ ' \ | / -_)| |/ _' |
+    |  |/ \|/  /| \ |  |___/\___| .__/ |___/_||_||_\___||_|\__,_|
+    |  o---||---o--o|           |_|
+     \  \  ||  /  /    Autonomous Security Pentesting Agent
+      \  \ || /  /     Zero-Source-Code Ingestion | OSV-Verified
+       \  \||/  /      Powered by Bifrost by Maxim AI
+        \  \/  /
+         \____/
+"""
+
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="depshield")
+    parser = argparse.ArgumentParser(
+        prog="depshield",
+        description=DEPSHIELD_BANNER,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument("--version", action="version", version="depshield 0.1.0")
     parser.add_argument("--json", action="store_true", help="Output machine-readable JSON")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -115,11 +133,15 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
+    effective_argv = sys.argv[1:] if argv is None else argv
+    if not effective_argv:
+        parser.print_help()
+        return 0
     args = parser.parse_args(argv)
     try:
         return _dispatch(args)
     except (ApiError, OSError, RuntimeError, TimeoutError, ValueError) as exc:
-        _error(str(exc), args.json)
+        _error(str(exc), getattr(args, "json", False))
         return 2
 
 
