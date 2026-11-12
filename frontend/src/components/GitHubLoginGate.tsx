@@ -452,56 +452,98 @@ export default function GitHubLoginGate({
                 <div className="sw-cli-install-head">
                   <div className="sw-cli-install-title">
                     <Terminal size={14} className="text-emerald" />
-                    <span>Step 0: One-Line CLI Installation</span>
+                    <span>Prerequisite: One-Time CLI Installation</span>
                   </div>
-                  <span className="sw-cli-install-badge">Run once inside cloned DepShield repository</span>
+                  <span className="sw-cli-install-badge">Requires DepShield Repository</span>
                 </div>
-                <div className="sw-cli-install-grid">
-                  <div className="sw-cli-install-col">
-                    <span className="sw-cli-install-os">Universal (pip / pipx)</span>
-                    <div className="sw-code-line">
-                      <code>pip install -e ./cli</code>
-                      <button
-                        type="button"
-                        className="sw-copy-btn"
-                        onClick={() => copyCommand('pip install -e ./cli')}
-                        title="Copy command"
-                      >
-                        {copiedText === 'pip install -e ./cli' ? <Check size={12} /> : <Copy size={12} />}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="sw-cli-install-col">
-                    <span className="sw-cli-install-os">Windows PowerShell</span>
-                    <div className="sw-code-line">
-                      <code>.\install-cli.ps1</code>
-                      <button
-                        type="button"
-                        className="sw-copy-btn"
-                        onClick={() => copyCommand('.\\install-cli.ps1')}
-                        title="Copy command"
-                      >
-                        {copiedText === '.\\install-cli.ps1' ? <Check size={12} /> : <Copy size={12} />}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="sw-cli-install-col">
-                    <span className="sw-cli-install-os">macOS & Linux</span>
-                    <div className="sw-code-line">
-                      <code>./install-cli.sh</code>
-                      <button
-                        type="button"
-                        className="sw-copy-btn"
-                        onClick={() => copyCommand('./install-cli.sh')}
-                        title="Copy command"
-                      >
-                        {copiedText === './install-cli.sh' ? <Check size={12} /> : <Copy size={12} />}
-                      </button>
-                    </div>
+
+                <div className="sw-cli-requirement-callout">
+                  <AlertTriangle size={15} className="text-amber" />
+                  <div>
+                    <strong>Prerequisite:</strong> To use the <code>depshield</code> command on your machine, you must first clone or install the DepShield repository. Once installed, it is globally available in any directory.
                   </div>
                 </div>
+
+                <div className="sw-cli-clone-step">
+                  <span className="sw-cli-step-tag">Step 1: Clone repository & enter directory</span>
+                  <div className="sw-code-line">
+                    <code>git clone https://github.com/agudu50/DepShield.git &amp;&amp; cd DepShield</code>
+                    <button
+                      type="button"
+                      className="sw-copy-btn"
+                      onClick={() => copyCommand('git clone https://github.com/agudu50/DepShield.git && cd DepShield')}
+                      title="Copy command"
+                    >
+                      {copiedText === 'git clone https://github.com/agudu50/DepShield.git && cd DepShield' ? <Check size={12} /> : <Copy size={12} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="sw-cli-install-options">
+                  <span className="sw-cli-step-tag">Step 2: Run one-line installer inside DepShield</span>
+                  <div className="sw-cli-install-grid">
+                    <div className="sw-cli-install-col">
+                      <span className="sw-cli-install-os">Windows PowerShell</span>
+                      <div className="sw-code-line">
+                        <code>.\install-cli.ps1</code>
+                        <button
+                          type="button"
+                          className="sw-copy-btn"
+                          onClick={() => copyCommand('.\\install-cli.ps1')}
+                          title="Copy command"
+                        >
+                          {copiedText === '.\\install-cli.ps1' ? <Check size={12} /> : <Copy size={12} />}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="sw-cli-install-col">
+                      <span className="sw-cli-install-os">macOS &amp; Linux</span>
+                      <div className="sw-code-line">
+                        <code>./install-cli.sh</code>
+                        <button
+                          type="button"
+                          className="sw-copy-btn"
+                          onClick={() => copyCommand('./install-cli.sh')}
+                          title="Copy command"
+                        >
+                          {copiedText === './install-cli.sh' ? <Check size={12} /> : <Copy size={12} />}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="sw-cli-install-col">
+                      <span className="sw-cli-install-os">Universal (pip / pipx)</span>
+                      <div className="sw-code-line">
+                        <code>pip install -e ./cli</code>
+                        <button
+                          type="button"
+                          className="sw-copy-btn"
+                          onClick={() => copyCommand('pip install -e ./cli')}
+                          title="Copy command"
+                        >
+                          {copiedText === 'pip install -e ./cli' ? <Check size={12} /> : <Copy size={12} />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="sw-cli-direct-option">
+                  <span className="sw-cli-step-tag">Alternative: Install directly from GitHub (zero cloning)</span>
+                  <div className="sw-code-line">
+                    <code>pip install &quot;git+https://github.com/agudu50/DepShield.git#subdirectory=cli&quot;</code>
+                    <button
+                      type="button"
+                      className="sw-copy-btn"
+                      onClick={() => copyCommand('pip install "git+https://github.com/agudu50/DepShield.git#subdirectory=cli"')}
+                      title="Copy command"
+                    >
+                      {copiedText === 'pip install "git+https://github.com/agudu50/DepShield.git#subdirectory=cli"' ? <Check size={12} /> : <Copy size={12} />}
+                    </button>
+                  </div>
+                </div>
+
                 <p className="sw-cli-install-note">
-                  Installed once, the <code>depshield</code> command is globally accessible in any directory across your system.
+                  Once installed, you can open any folder or project on your computer (e.g. <code>C:\Testing</code>) and run <code>depshield</code> commands immediately.
                 </p>
               </div>
 

@@ -3906,6 +3906,47 @@ body {
   text-transform: uppercase;
 }
 
+.sw-cli-requirement-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background-color: #1a1608;
+  border: 1px solid #78350f;
+  border-radius: 4px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: #fde68a;
+}
+
+.sw-cli-requirement-callout strong {
+  color: #fbbf24;
+}
+
+.sw-cli-requirement-callout code {
+  color: #ffffff;
+  background: #271a06;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.sw-cli-step-tag {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.72rem;
+  color: #a1a1aa;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.sw-cli-clone-step,
+.sw-cli-install-options,
+.sw-cli-direct-option {
+  margin-bottom: 18px;
+}
+
 .sw-cli-install-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -6097,6 +6138,25 @@ body {
 
 [data-theme="light"] .sw-cli-install-badge {
   color: #71717a;
+}
+
+[data-theme="light"] .sw-cli-requirement-callout {
+  background-color: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+[data-theme="light"] .sw-cli-requirement-callout strong {
+  color: #b45309;
+}
+
+[data-theme="light"] .sw-cli-requirement-callout code {
+  color: #78350f;
+  background: #fef3c7;
+}
+
+[data-theme="light"] .sw-cli-step-tag {
+  color: #52525b;
 }
 
 [data-theme="light"] .sw-cli-install-os {
