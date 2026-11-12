@@ -122,3 +122,48 @@ depshield audit --offline
 - **Zero Source Code Ingestion**: The CLI opens only manifest and lockfile descriptors. Application logic (`.ts`, `.py`, `.js`, `.go`, `.env`) is never opened, read into memory, or transmitted.
 - **Stateless Queries**: Outbound checks send only exact `(package_name, version)` pairs to authoritative OSV.dev feeds.
 
+---
+
+## Stopping & Uninstalling
+
+### 1. Stopping Active Operations
+
+- **Foreground Monitor (`depshield monitor`)**: Press `Ctrl + C` in your terminal to cleanly terminate the file-watching daemon.
+- **Single-Run Commands (`depshield audit`, `depshield github analyze`, `depshield add`)**: These execute synchronously and terminate automatically upon completion. No background processes remain active.
+
+### 2. Clearing Stored Credentials
+
+To remove your credentials from the operating system's native keychain:
+
+```bash
+# Remove stored GitHub Personal Access Token
+depshield github logout
+
+# Remove stored web dashboard session token
+depshield logout
+```
+
+### 3. Uninstalling the CLI
+
+To completely remove the DepShield CLI executable from your system:
+
+- **Windows PowerShell:**
+  ```powershell
+  .\uninstall-cli.ps1
+  ```
+  *(Or if installed via pip: `pip uninstall depshield`)*
+
+- **macOS & Linux:**
+  ```bash
+  ./uninstall-cli.sh
+  ```
+  *(Or if installed via pip: `pip uninstall depshield`)*
+
+- **Direct GitHub Pip Install (Zero-Clone Users):**
+  ```bash
+  pip uninstall depshield
+  ```
+
+Once uninstalled, you can safely remove the cloned `DepShield` repository folder if you no longer need it.
+
+

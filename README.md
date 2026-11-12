@@ -201,7 +201,14 @@ depshield add express@4.18.2
 
 # 5. Turn on background monitoring to watch for new vulnerabilities
 depshield monitor
+# 6. Log out and remove stored tokens from OS keychain
+depshield github logout
+depshield logout
 ```
+
+### Stopping & Uninstalling
+- **Stopping active monitors:** Press `Ctrl + C` in the terminal to stop `depshield monitor`. One-shot commands exit automatically when finished.
+- **Uninstalling:** Run `.\uninstall-cli.ps1` (Windows), `./uninstall-cli.sh` (macOS/Linux), or `pip uninstall depshield`.
 
 For full documentation and advanced commands, see the [CLI Reference Guide](cli/README.md).
 
