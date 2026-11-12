@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="frontend/public/depshield-logo.jpg" alt="DepShield Logo" width="460" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="frontend/public/depshield-logo-dark.png">
+    <img src="frontend/public/depshield-logo-light.png" alt="DepShield Logo" width="460">
+  </picture>
 </p>
 
 # DepShield AI
