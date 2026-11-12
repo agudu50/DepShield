@@ -292,7 +292,7 @@ def _github_repos(page: int, per_page: int, as_json: bool) -> int:
             for r in repos:
                 vis = "private" if r.private else "public"
                 lang = f"[{r.language}]" if r.language else ""
-                stars = f"★ {r.stargazers_count}" if r.stargazers_count else ""
+                stars = f"[{r.stargazers_count} stars]" if r.stargazers_count else ""
                 print(f" • {r.full_name} ({vis}) {lang} {stars}")
             print("\nRun 'depshield github analyze <owner/repo>' to analyze a project with the AI Agent.\n")
         return 0

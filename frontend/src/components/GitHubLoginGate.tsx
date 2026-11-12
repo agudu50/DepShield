@@ -14,9 +14,11 @@ import {
   Globe,
   KeyRound,
   Lock,
+  Moon,
   RefreshCw,
   Shield,
   ShieldCheck,
+  Sun,
   Terminal,
   XCircle,
 } from 'lucide-react'
@@ -32,9 +34,16 @@ import Pentest3DShield from './Pentest3DShield'
 interface GitHubLoginGateProps {
   onLoginSuccess: (token: string, user: GitHubUserProfile) => void
   onSkipToWorkspace?: () => void
+  theme?: 'dark' | 'light'
+  onToggleTheme?: () => void
 }
 
-export default function GitHubLoginGate({ onLoginSuccess, onSkipToWorkspace }: GitHubLoginGateProps) {
+export default function GitHubLoginGate({
+  onLoginSuccess,
+  onSkipToWorkspace,
+  theme = 'dark',
+  onToggleTheme,
+}: GitHubLoginGateProps) {
   const [tokenInput, setTokenInput] = useState('')
   const [showToken, setShowToken] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -118,6 +127,18 @@ export default function GitHubLoginGate({ onLoginSuccess, onSkipToWorkspace }: G
             <button type="button" onClick={() => scrollTo('sw-stream')}>Telemetry</button>
           </nav>
           <div className="sw-nav-right">
+            {onToggleTheme && (
+              <button
+                type="button"
+                className="theme-toggle-btn"
+                onClick={onToggleTheme}
+                title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+                aria-label="Toggle theme"
+              >
+                {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
+                <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
+              </button>
+            )}
             <span className="sw-bifrost-tag">BIFROST / MAXIM AI</span>
             <button type="button" className="sw-cta-btn" onClick={() => scrollTo('sw-connect')}>
               Connect <ArrowRight size={13} />
@@ -327,8 +348,8 @@ export default function GitHubLoginGate({ onLoginSuccess, onSkipToWorkspace }: G
                 </p>
                 <div className="sw-cap-terminal">
                   <code>$ depshield add bad-pkg@1.0</code>
-                  <span className="sw-term-err">✖ BLOCKED: Malicious payload detected</span>
-                  <span className="sw-term-ok">✔ Policy enforced. No files written.</span>
+                  <span className="sw-term-err">[BLOCKED] Malicious payload detected</span>
+                  <span className="sw-term-ok">[ENFORCED] Policy verified. No files written.</span>
                 </div>
               </div>
             </div>

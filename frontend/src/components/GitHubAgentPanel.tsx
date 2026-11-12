@@ -19,7 +19,9 @@ import {
   ShieldAlert,
   ShieldCheck,
   Sparkles,
+  Star,
   Terminal,
+  Zap,
 } from 'lucide-react'
 import {
   analyzeGitHubRepo,
@@ -390,7 +392,11 @@ export default function GitHubAgentPanel({
                         <GitBranch size={11} />
                         {repo.default_branch}
                       </span>
-                      {repo.stargazers_count > 0 && <span>★ {repo.stargazers_count}</span>}
+                      {repo.stargazers_count > 0 && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                          <Star size={10} fill="currentColor" /> {repo.stargazers_count}
+                        </span>
+                      )}
                       {isSelected && (
                         <span className="selected-target-pill">
                           Target Selected <ArrowRight size={11} />
@@ -774,7 +780,9 @@ export default function GitHubAgentPanel({
                     <span className="launchpad-badge lang">{selectedRepo.language}</span>
                   )}
                   {selectedRepo.stargazers_count > 0 && (
-                    <span className="launchpad-badge stars">★ {selectedRepo.stargazers_count}</span>
+                    <span className="launchpad-badge stars" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <Star size={11} fill="currentColor" /> {selectedRepo.stargazers_count}
+                    </span>
                   )}
                 </div>
               </div>
@@ -911,9 +919,9 @@ export default function GitHubAgentPanel({
                 configure security directives, and run the autonomous DepShield AI agent.
               </p>
               <div className="empty-feature-pills">
-                <span>🔒 Zero Source Code Access</span>
-                <span>⚡ Real-Time OSV Feeds</span>
-                <span>🛡️ Non-Breaking Fix Plans</span>
+                <span><Lock size={12} /> Zero Source Code Access</span>
+                <span><Zap size={12} /> Real-Time OSV Feeds</span>
+                <span><ShieldCheck size={12} /> Non-Breaking Fix Plans</span>
               </div>
             </div>
           )}

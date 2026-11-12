@@ -1,10 +1,10 @@
-# DepShield AI 🛡️
+# DepShield AI
 
 ### An Agent Powered by Bifrost by Maxim AI
 
 ---
 
-## 💡 What is DepShield AI?
+## What is DepShield AI?
 
 When developers build apps, they use hundreds of open-source packages (libraries like `express`, `requests`, or `lodash`). But hackers frequently hide dangerous bugs, security holes, and backdoors inside these packages to break into servers, steal data, or crash systems.
 
@@ -19,7 +19,7 @@ You give it a target repository or a list of packages, and the agent:
 
 ---
 
-## 🎯 The Theme: Build an Agent That Pentests a Target on Its Own
+## Autonomous Pentesting Agent Architecture
 
 Traditional security scanners simply give you long, confusing lists of errors. They don't think, prioritize, or explain how a hacker could actually exploit your project.
 
@@ -35,7 +35,7 @@ DepShield acts like a friendly, automated security expert:
 
 ---
 
-## ⚡ Why Bifrost by Maxim AI is the Core Engine
+## Why Bifrost by Maxim AI is the Core Engine
 
 **Bifrost by Maxim AI** serves as the central brain and gateway for all AI investigations:
 
@@ -61,11 +61,11 @@ DepShield acts like a friendly, automated security expert:
 
 ---
 
-## 🔒 The Zero-Exfiltration Promise: No Code Theft
+## The Zero-Exfiltration Guarantee: No Code Retention
 
 Developers are often afraid that AI tools will steal their private code or secret keys. DepShield is built with strict safety boundaries:
 
-| What DepShield Checks ✅                                           | What DepShield NEVER Touches ❌                           |
+| What DepShield Checks                                              | What DepShield NEVER Touches                              |
 | :----------------------------------------------------------------- | :-------------------------------------------------------- |
 | **Package Names & Version Numbers** (`lodash: 4.17.15`)            | **Your Private Source Code** (`.js`, `.ts`, `.py`, `.go`) |
 | **Manifest Files** (`package.json`, `uv.lock`, `requirements.txt`) | **Passwords & Secrets** (`.env`, `.pem`, API keys)        |
@@ -75,7 +75,7 @@ When checking security risks, DepShield sends **only** the package name and vers
 
 ---
 
-## 🛠️ Technologies Used
+## Technologies Used
 
 - **Bifrost by Maxim AI (`@maximhq/bifrost`)**: The high-performance AI gateway that coordinates the security agent's reasoning.
 - **FastAPI (Python 3.12)**: Fast, lightweight backend service that orchestrates target scans and connects to Bifrost.
@@ -86,7 +86,7 @@ When checking security risks, DepShield sends **only** the package name and vers
 
 ---
 
-## 🚀 Quick Start & Installation
+## Quick Start & Installation
 
 You can get the entire project running locally in just a few minutes.
 
@@ -141,7 +141,7 @@ The web dashboard will start at **`http://localhost:5173`**.
 
 ---
 
-## 🖥️ How to Use DepShield
+## How to Use DepShield
 
 ### Option A: Using the Web App
 
@@ -179,7 +179,7 @@ depshield monitor
 
 ---
 
-## 📡 Live Real-Time Activity Monitoring
+## Live Real-Time Activity Monitoring
 
 Both the landing page and the dashboard feature a **Live Activity Monitor**.
 
@@ -192,7 +192,7 @@ Whenever an audit runs, you can see a transparent log of every action:
 
 ---
 
-## 🧪 Testing the Project
+## Testing the Project
 
 You can verify that everything works properly with our built-in test suites:
 
@@ -210,7 +210,7 @@ npm run build --prefix frontend
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 DepShield/
@@ -241,11 +241,12 @@ DepShield/
 
 ---
 
-## 🏆 Summary
+## Summary
 
 DepShield AI turns vulnerability management into an autonomous, transparent security experience:
 
 - **Target**: Any project or GitHub repository.
 - **Agent**: Discovers packages, probes attack surfaces, and verifies vulnerabilities.
 - **Brain**: **Bifrost by Maxim AI** analyzes risks, evaluates reachability, and builds safe upgrade plans.
+- **Promise**: 100% deterministic security facts, zero code theft, and clear, simple answers.
 - **Promise**: 100% deterministic security facts, zero code theft, and clear, simple answers.

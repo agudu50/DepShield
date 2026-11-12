@@ -11,10 +11,12 @@ import {
   Github,
   LoaderCircle,
   LogOut,
+  Moon,
   Shield,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
+  Sun,
   Users,
 } from 'lucide-react'
 import {
@@ -58,6 +60,19 @@ export default function App() {
   const [user, setUser] = useState<GitHubUserProfile | null>(null)
   const [loadingUser, setLoadingUser] = useState(Boolean(token))
   const [showWorkspaceOnly, setShowWorkspaceOnly] = useState(false)
+
+  // Light / Dark Theme State
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    const saved = localStorage.getItem('depshield_theme')
+    return saved === 'light' ? 'light' : 'dark'
+  })
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem('depshield_theme', theme)
+  }, [theme])
+
+  const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
 
   // Navigation tab state
   const [activeTab, setActiveTab] = useState<DashboardTab>('agent')
@@ -260,6 +275,8 @@ export default function App() {
       <GitHubLoginGate
         onLoginSuccess={handleLoginSuccess}
         onSkipToWorkspace={() => setShowWorkspaceOnly(true)}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
     )
   }
@@ -282,6 +299,17 @@ export default function App() {
           </div>
 
           <div className="db-topbar-actions">
+            <button
+              type="button"
+              className="theme-toggle-btn"
+              onClick={toggleTheme}
+              title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
+              <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
+            </button>
+
             <div
               className="db-security-pill"
               title="Deterministic isolation: only manifests read, zero source code access"
