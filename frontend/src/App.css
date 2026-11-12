@@ -5724,10 +5724,18 @@ body {
 }
 
 [data-theme="light"] .sw-hero-meta {
-  background: #ffffff;
-  border-color: #e4e4e7;
+  background: transparent;
+  border: none;
+  box-shadow: none;
   color: #52525b;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="light"] .sw-hero-meta-text {
+  color: #52525b;
+}
+
+[data-theme="light"] .sw-hero-meta-sep {
+  color: #d4d4d8;
 }
 
 [data-theme="light"] .sw-hero-title {
@@ -5738,83 +5746,466 @@ body {
   color: #52525b;
 }
 
-[data-theme="light"] .sw-stat-cell {
-  background: #ffffff;
-  border-color: #e4e4e7;
-}
-
-[data-theme="light"] .sw-stat-val {
+[data-theme="light"] .sw-hero-desc strong {
   color: #09090b;
 }
 
-[data-theme="light"] .sw-stat-lbl {
+[data-theme="light"] .sw-stat-num {
+  color: #09090b;
+}
+
+[data-theme="light"] .sw-stat-label {
   color: #71717a;
 }
 
-[data-theme="light"] .sw-sec-title {
-  color: #09090b;
+[data-theme="light"] .sw-stat-div {
+  background-color: #e4e4e7;
 }
 
-[data-theme="light"] .sw-sec-sub {
-  color: #52525b;
-}
-
-[data-theme="light"] .sw-cap-card,
-[data-theme="light"] .sw-step-card,
-[data-theme="light"] .sw-claim-card,
-[data-theme="light"] .sw-terminal-card,
-[data-theme="light"] .sw-connect-card,
-[data-theme="light"] .sw-faq-card {
+/* 3D Holographic Canvas & HUD in Light Mode */
+[data-theme="light"] .pentest-3d-wrapper {
   background: #ffffff;
   border-color: #e4e4e7;
-  color: #09090b;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
 }
 
-[data-theme="light"] .sw-cap-title,
-[data-theme="light"] .sw-step-title,
-[data-theme="light"] .sw-claim-title,
-[data-theme="light"] .sw-connect-title {
+[data-theme="light"] .hud-card {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: #e4e4e7;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .hud-target-label {
+  color: #71717a;
+}
+
+[data-theme="light"] .hud-target-name {
   color: #09090b;
 }
 
-[data-theme="light"] .sw-cap-desc,
-[data-theme="light"] .sw-step-desc,
-[data-theme="light"] .sw-claim-desc,
-[data-theme="light"] .sw-connect-sub {
+[data-theme="light"] .status-label {
+  color: #71717a;
+}
+
+[data-theme="light"] .status-val.high {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+[data-theme="light"] .status-val.warn {
+  background: #fef3c7;
+  color: #d97706;
+  border-color: #fde68a;
+}
+
+[data-theme="light"] .status-val.clean {
+  background: #d1fae5;
+  color: #059669;
+  border-color: #a7f3d0;
+}
+
+[data-theme="light"] .status-val.auditing {
+  background: #dbeafe;
+  color: #2563eb;
+  border-color: #bfdbfe;
+}
+
+[data-theme="light"] .hud-sub {
+  color: #71717a;
+}
+
+[data-theme="light"] .hud-state {
+  color: #059669;
+}
+
+[data-theme="light"] .hud-metric {
   color: #52525b;
 }
 
-[data-theme="light"] .sw-terminal-header {
-  background: #fafafa;
-  border-bottom-color: #e4e4e7;
-}
-
-[data-theme="light"] .sw-terminal-body {
-  background: #ffffff;
-}
-
-[data-theme="light"] .sw-token-input {
-  background: #ffffff;
-  border-color: #d4d4d8;
+[data-theme="light"] .hud-metric strong {
   color: #09090b;
 }
 
-[data-theme="light"] .sw-token-input:focus {
+[data-theme="light"] .hud-divider {
+  background-color: #e4e4e7;
+}
+
+[data-theme="light"] .canvas-watermark {
+  color: #a1a1aa;
+}
+
+/* Connect Command Bar in Light Mode */
+[data-theme="light"] .sw-connect-bar {
+  background-color: #ffffff;
+  border-color: #e4e4e7;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="light"] .sw-connect-label {
+  color: #52525b;
+}
+
+[data-theme="light"] .sw-connect-scope {
+  color: #71717a;
+}
+
+[data-theme="light"] .sw-error-row {
+  background-color: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+[data-theme="light"] .sw-token-row {
+  background-color: #ffffff;
+  border-color: #d4d4d8;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+[data-theme="light"] .sw-token-row:focus-within {
   border-color: #09090b;
 }
 
-[data-theme="light"] .sw-footer {
+[data-theme="light"] .sw-token-input {
+  background: transparent;
+  color: #09090b;
+}
+
+[data-theme="light"] .sw-token-input::placeholder {
+  color: #a1a1aa;
+}
+
+[data-theme="light"] .sw-vis-btn {
+  color: #71717a;
+}
+
+[data-theme="light"] .sw-vis-btn:hover {
+  color: #09090b;
+}
+
+[data-theme="light"] .sw-submit-btn {
+  background: #09090b;
+  color: #ffffff;
+}
+
+[data-theme="light"] .sw-submit-btn:hover {
+  background: #27272a;
+}
+
+[data-theme="light"] .sw-connect-footer {
+  color: #71717a;
+}
+
+[data-theme="light"] .sw-token-link {
+  color: #52525b;
+}
+
+[data-theme="light"] .sw-token-link:hover {
+  color: #09090b;
+}
+
+/* Section Dividers & Headings in Light Mode */
+[data-theme="light"] .sw-rule {
+  background-color: #e4e4e7;
+}
+
+[data-theme="light"] .sw-section {
+  background: #f7f7f8;
+}
+
+[data-theme="light"] .sw-section-num {
+  color: #a1a1aa;
+}
+
+[data-theme="light"] .sw-section-title {
+  color: #09090b;
+}
+
+[data-theme="light"] .sw-section-sub {
+  color: #52525b;
+}
+
+/* 01 Capabilities Grid in Light Mode */
+[data-theme="light"] .sw-cap-item {
+  background-color: #ffffff;
+  border-color: #e4e4e7;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="light"] .sw-cap-num {
+  color: #a1a1aa;
+}
+
+[data-theme="light"] .sw-cap-label {
+  color: #71717a;
+}
+
+[data-theme="light"] .sw-cap-title {
+  color: #09090b;
+}
+
+[data-theme="light"] .sw-cap-desc {
+  color: #52525b;
+}
+
+[data-theme="light"] .sw-cap-evidence {
+  background-color: #f4f4f5;
+  border-color: #e4e4e7;
+}
+
+[data-theme="light"] .sw-evidence-label {
+  color: #71717a;
+}
+
+[data-theme="light"] .sw-evidence-val {
+  color: #09090b;
+}
+
+[data-theme="light"] .sw-evidence-safe {
+  color: #059669;
+}
+
+[data-theme="light"] .sw-check-allow {
+  color: #059669;
+}
+
+[data-theme="light"] .sw-check-allow code {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+[data-theme="light"] .sw-check-block {
+  color: #dc2626;
+}
+
+[data-theme="light"] .sw-check-block code {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+[data-theme="light"] .sw-check-metric {
+  color: #09090b;
+}
+
+[data-theme="light"] .sw-cap-terminal {
+  background-color: #f4f4f5;
+  border-color: #e4e4e7;
+}
+
+[data-theme="light"] .sw-cap-terminal code {
+  color: #09090b;
+}
+
+[data-theme="light"] .sw-term-err {
+  color: #dc2626;
+}
+
+[data-theme="light"] .sw-term-ok {
+  color: #059669;
+}
+
+[data-theme="light"] .sw-pill {
+  background-color: #f4f4f5;
+  border-color: #e4e4e7;
+  color: #3f3f46;
+}
+
+/* 02 Workflow in Light Mode */
+[data-theme="light"] .sw-tab-btn {
+  background-color: #ffffff;
+  border-color: #e4e4e7;
+  color: #71717a;
+}
+
+[data-theme="light"] .sw-tab-btn:hover {
+  color: #09090b;
+  border-color: #d4d4d8;
+}
+
+[data-theme="light"] .sw-tab-active {
+  background-color: #09090b;
+  color: #ffffff;
+  border-color: #09090b;
+}
+
+[data-theme="light"] .sw-tab-active:hover {
+  color: #ffffff;
+}
+
+[data-theme="light"] .sw-step {
+  border-top-color: #e4e4e7;
+}
+
+[data-theme="light"] .sw-step-num {
+  color: #a1a1aa;
+}
+
+[data-theme="light"] .sw-step-title {
+  color: #09090b;
+}
+
+[data-theme="light"] .sw-step-desc {
+  color: #52525b;
+}
+
+[data-theme="light"] .sw-code-line {
+  background-color: #ffffff;
+  border-color: #e4e4e7;
+}
+
+[data-theme="light"] .sw-code-line code {
+  color: #09090b;
+}
+
+[data-theme="light"] .sw-copy-btn {
+  color: #71717a;
+}
+
+[data-theme="light"] .sw-copy-btn:hover {
+  color: #09090b;
+}
+
+/* 03 Zero-Theft Guarantee & Telemetry Stream in Light Mode */
+[data-theme="light"] .sw-guardrail strong {
+  color: #09090b;
+}
+
+[data-theme="light"] .sw-guardrail p {
+  color: #52525b;
+}
+
+[data-theme="light"] .sw-gi-allow {
+  background-color: #ecfdf5;
+  color: #059669;
+  border-color: #a7f3d0;
+}
+
+[data-theme="light"] .sw-gi-block {
+  background-color: #fef2f2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+[data-theme="light"] .sw-console {
+  background-color: #ffffff;
+  border-color: #e4e4e7;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="light"] .sw-console-header {
+  background-color: #fafafa;
+  border-bottom-color: #e4e4e7;
+}
+
+[data-theme="light"] .sw-console-title {
+  color: #52525b;
+}
+
+[data-theme="light"] .sw-sim-btn {
   background: #ffffff;
+  border-color: #d4d4d8;
+  color: #3f3f46;
+}
+
+[data-theme="light"] .sw-sim-btn:hover:not(:disabled) {
+  border-color: #09090b;
+  color: #09090b;
+}
+
+[data-theme="light"] .sw-console-body {
+  background-color: #ffffff;
+}
+
+[data-theme="light"] .sw-console-empty div {
+  color: #09090b !important;
+}
+
+[data-theme="light"] .sw-console-empty p {
+  color: #71717a !important;
+}
+
+[data-theme="light"] .sw-console-event {
+  border-bottom-color: #f4f4f5;
+}
+
+[data-theme="light"] .sw-evt-ts {
+  color: #71717a;
+}
+
+[data-theme="light"] .sw-evt-src {
+  color: #2563eb;
+}
+
+[data-theme="light"] .sw-evt-action {
+  color: #09090b;
+}
+
+[data-theme="light"] .sw-evt-target {
+  color: #71717a;
+}
+
+[data-theme="light"] .sw-evt-target code {
+  color: #09090b;
+}
+
+[data-theme="light"] .sw-evt-detail {
+  color: #52525b;
+}
+
+[data-theme="light"] .sw-console-footer {
+  background-color: #fafafa;
+  border-top-color: #e4e4e7;
+  color: #52525b;
+}
+
+[data-theme="light"] .sw-console-footer strong {
+  color: #09090b;
+}
+
+/* Footer in Light Mode */
+[data-theme="light"] .sw-footer {
+  background-color: #ffffff;
   border-top-color: #e4e4e7;
   color: #71717a;
 }
 
-[data-theme="light"] .sw-footer-link {
+[data-theme="light"] .sw-footer-brand {
+  color: #09090b;
+}
+
+[data-theme="light"] .sw-footer-col-head {
+  color: #09090b;
+}
+
+[data-theme="light"] .sw-footer-col ul li a,
+[data-theme="light"] .sw-footer-col ul li button {
   color: #52525b;
 }
 
-[data-theme="light"] .sw-footer-link:hover {
+[data-theme="light"] .sw-footer-col ul li a:hover,
+[data-theme="light"] .sw-footer-col ul li button:hover {
   color: #09090b;
+}
+
+[data-theme="light"] .sw-footer-col code {
+  background: #f4f4f5;
+  color: #3f3f46;
+  border: 1px solid #e4e4e7;
+}
+
+[data-theme="light"] .sw-footer-bottom p {
+  color: #71717a;
+}
+
+[data-theme="light"] .sw-footer-bottom strong {
+  color: #09090b;
+}
+
+[data-theme="light"] .sw-footer-tags span {
+  background: #f4f4f5;
+  color: #52525b;
+  border: 1px solid #e4e4e7;
 }
 
