@@ -15,7 +15,7 @@
 
 When developers build apps, they use hundreds of open-source packages (libraries like `express`, `requests`, or `lodash`). But hackers frequently hide dangerous bugs, security holes, and backdoors inside these packages to break into servers, steal data, or crash systems.
 
-**DepShield AI** is an autonomous security agent that tests projects for vulnerabilities on its own.
+**DepShield AI** is an autonomous vulnerability detection agent that finds and remediates vulnerable packages across your repositories on its own.
 
 You give it a target repository or a list of packages, and the agent:
 
@@ -166,7 +166,7 @@ The web dashboard will start at **`http://localhost:5173`**.
 ### Option B: Using the Developer CLI (Terminal)
 
 #### Why Clone the Repository First?
-DepShield is distributed directly via its open-source GitHub repository and is not yet published to the public PyPI package index (`pip install depshield` is not available on PyPI):
+DepShield is an autonomous vulnerability detection agent distributed directly via its open-source GitHub repository and is not yet published to the public PyPI package index (`pip install depshield` is not available on PyPI):
 1. **Not on PyPI Yet (Direct Source)**: Cloning gives you the full package on your machine so you can install and run the CLI directly from source.
 2. **Pre-Configured Native Launchers**: The repository includes standalone PowerShell, CMD, and Bash wrappers in `bin/` and automated setup scripts (`install-cli.ps1`, `install-cli.sh`) that configure your user PATH without needing PyPI or administrative rights.
 3. **Full Auditability & Clean Teardown**: Having the local repository allows you to inspect the manifest-only sandbox, run unit tests locally, and cleanly uninstall anytime with `.\uninstall-cli.ps1` or `./uninstall-cli.sh`.

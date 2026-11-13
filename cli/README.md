@@ -1,6 +1,6 @@
 # DepShield Developer CLI (`depshield`)
 
-The command-line interface for the **DepShield AI Security Agent**, powered by **Bifrost by Maxim AI**.
+The command-line interface for the **DepShield Vulnerability Detection Agent**, powered by **Bifrost by Maxim AI**.
 
 ---
 
