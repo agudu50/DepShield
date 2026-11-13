@@ -131,6 +131,7 @@ depshield audit --offline
 - **OS Keyring Integration**: Tokens are stored via the Python `keyring` library using native OS credentials (Windows Credential Locker, macOS Keychain, Linux Secret Service).
 - **Zero Source Code Ingestion**: The CLI opens only manifest and lockfile descriptors. Application logic (`.ts`, `.py`, `.js`, `.go`, `.env`) is never opened, read into memory, or transmitted.
 - **Stateless Queries**: Outbound checks send only exact `(package_name, version)` pairs to authoritative OSV.dev feeds.
+- **Deterministic AI Grounding & Anti-Hallucination**: The agent never invents CVEs. All assessments are grounded in verified OSV.dev feeds with low-temperature deterministic inference (0.1) and mandatory advisory ID citations. Clean packages bypass AI entirely.
 
 ---
 
