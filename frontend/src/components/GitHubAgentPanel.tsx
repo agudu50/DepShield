@@ -33,6 +33,7 @@ import {
   type GitHubUserProfile,
 } from '../api'
 import { addTelemetryBatch } from '../telemetry'
+import ModelPicker from './ModelPicker'
 
 interface GitHubAgentPanelProps {
   token: string
@@ -56,6 +57,7 @@ export default function GitHubAgentPanel({
     'Identify all critical vulnerabilities, assess reachability, and provide safe upgrade paths.',
   )
 
+  const [aiModel, setAiModel] = useState<string | null>(null)
   const [loadingRepos, setLoadingRepos] = useState(false)
   const [loadingManifests, setLoadingManifests] = useState(false)
   const [analyzing, setAnalyzing] = useState(false)
@@ -161,6 +163,7 @@ export default function GitHubAgentPanel({
         manifest_path: selectedManifest,
         ref: selectedRepo.default_branch,
         question: question.trim() || undefined,
+        model: aiModel ?? undefined,
       })
       setReport(result)
       setViewMode('report')
@@ -914,6 +917,7 @@ export default function GitHubAgentPanel({
                       Safe Upgrade Paths
                     </button>
                   </div>
+                  <ModelPicker value={aiModel} onChange={setAiModel} />
                 </div>
 
                 <div className="launchpad-cta-box">

@@ -27,7 +27,7 @@ import {
   Terminal,
   XCircle,
 } from 'lucide-react'
-import { checkBifrostHealth, getGitHubUser, type BifrostHealth, type GitHubUserProfile } from '../api'
+import { checkBifrostHealth, getGitHubUser, type GitHubUserProfile } from '../api'
 import { bifrostHealthToEvent } from '../bifrostProbe'
 import CommandPalette, { type PaletteItem } from './CommandPalette'
 import '../landing-seesaw.css'
@@ -80,22 +80,12 @@ export default function GitHubLoginGate({
   const [copiedText, setCopiedText] = useState<string | null>(null)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [capFilter, setCapFilter] = useState<CapCategory>('all')
-  const [gateway, setGateway] = useState<BifrostHealth | null>(null)
 
   useEffect(() => {
     setTelemetryEvents(getStoredEvents())
     return subscribeTelemetry((events) => {
       setTelemetryEvents(events)
     })
-  }, [])
-
-  // Real gateway status for the hero/nav chip: one tiny live completion on load.
-  useEffect(() => {
-    let cancelled = false
-    checkBifrostHealth().then((h) => !cancelled && setGateway(h))
-    return () => {
-      cancelled = true
-    }
   }, [])
 
   useEffect(() => {
@@ -133,14 +123,6 @@ export default function GitHubLoginGate({
     window.setTimeout(() => document.querySelector<HTMLInputElement>('.sw-token-input')?.focus(), 350)
   }
 
-  const gatewayChip = (() => {
-    if (!gateway) return { cls: 'pending', text: 'Checking Bifrost…', title: 'Sending a live probe to the gateway' }
-    if (gateway.status === 'live')
-      return { cls: 'live', text: `Bifrost live · ${gateway.latency_ms}ms`, title: `${gateway.model} · response ${gateway.gateway_response_id ?? 'n/a'}` }
-    if (gateway.status === 'unreachable') return { cls: 'down', text: 'Bifrost offline', title: gateway.error }
-    if (gateway.status === 'not_configured') return { cls: 'down', text: 'Bifrost not configured', title: 'Set BIFROST_BASE_URL' }
-    return { cls: 'down', text: 'Backend offline', title: 'Start the DepShield backend on :8000' }
-  })()
 
   function copyCommand(cmd: string) {
     navigator.clipboard.writeText(cmd)
@@ -222,10 +204,7 @@ export default function GitHubLoginGate({
                 <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
               </button>
             )}
-            <span className={`ss-gateway-chip ${gatewayChip.cls}`} title={gatewayChip.title}>
-              <span className="ss-gateway-dot" />
-              {gatewayChip.text}
-            </span>
+            <span className="sw-bifrost-tag">BIFROST / MAXIM AI</span>
             <button type="button" className="sw-cta-btn" onClick={() => scrollTo('sw-connect')}>
               Connect <ArrowRight size={13} />
             </button>

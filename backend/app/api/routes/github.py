@@ -7,7 +7,7 @@ from uuid import UUID
 from fastapi import APIRouter, Header, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from app.agents.bifrost import BifrostClient
+from app.agents.bifrost import BifrostClient, ModelNotAllowedError, make_bifrost_client
 from app.config import get_settings
 from app.domain.github.service import (
     GitHubError,
@@ -27,20 +27,20 @@ class AnalyzeRepoRequest(BaseModel):
     ref: str | None = Field(default=None, max_length=100)
     question: str | None = Field(default=None, max_length=1000)
     project_id: UUID | None = None
+    model: str | None = Field(default=None, max_length=120)
 
 
 def _get_github_service() -> GitHubService:
     return GitHubService()
 
 
-def _get_bifrost_client() -> BifrostClient | None:
-    if settings.bifrost_base_url:
-        return BifrostClient(
-            base_url=settings.bifrost_base_url,
-            model=settings.bifrost_model,
-            virtual_key=settings.bifrost_virtual_key.get_secret_value(),
-        )
-    return None
+def _get_bifrost_client(model: str | None = None) -> BifrostClient | None:
+    if not settings.bifrost_base_url:
+        return None
+    try:
+        return make_bifrost_client(settings, model)
+    except ModelNotAllowedError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.get("/user", response_model=GitHubUserProfile)
@@ -89,7 +89,7 @@ async def analyze_repository(
     x_github_token: str = Header(..., alias="X-GitHub-Token", description="GitHub Personal Access Token"),
 ) -> dict[str, Any]:
     service = _get_github_service()
-    bifrost = _get_bifrost_client()
+    bifrost = _get_bifrost_client(request.model)
     try:
         report = await service.analyze_repository_manifest(
             token=x_github_token,

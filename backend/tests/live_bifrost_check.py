@@ -5,6 +5,7 @@ REAL OSV.dev API and the REAL Bifrost gateway configured in .env.
 
 Run from backend/ with the gateway running:
     .venv\\Scripts\\python.exe -m tests.live_bifrost_check
+    .venv\\Scripts\\python.exe -m tests.live_bifrost_check --model anthropic/claude-sonnet-5-5
 
 Exit code 0 = every check passed, 1 = at least one failed, 2 = gateway unreachable.
 """
@@ -37,11 +38,14 @@ def check(ok: bool, label: str) -> None:
 
 
 async def main() -> int:
+    model = settings.bifrost_model
+    if "--model" in sys.argv:
+        model = sys.argv[sys.argv.index("--model") + 1]
     print(f"Gateway : {settings.bifrost_base_url}")
-    print(f"Model   : {settings.bifrost_model}\n")
+    print(f"Model   : {model}\n")
     client = BifrostClient(
         base_url=settings.bifrost_base_url,
-        model=settings.bifrost_model,
+        model=model,
         virtual_key=settings.bifrost_virtual_key.get_secret_value(),
     )
 

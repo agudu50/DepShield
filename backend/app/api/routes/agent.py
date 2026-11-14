@@ -11,7 +11,16 @@ from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
 
-from app.agents.bifrost import BifrostClient, BifrostError
+from app.agents.bifrost import BifrostClient, BifrostError, ModelNotAllowedError, resolve_model
+
+
+def make_bifrost_client(settings: "Settings", model: str | None = None) -> BifrostClient:
+    return BifrostClient(
+        base_url=settings.bifrost_base_url,
+        model=resolve_model(settings, model),
+        virtual_key=settings.bifrost_virtual_key.get_secret_value(),
+        fallback_models=list(settings.bifrost_fallback_models),
+    )
 from app.agents.investigation import InvestigationError, SecurityInvestigator
 from app.api.dependencies import get_authenticated_db_session, require_project_membership
 from app.auth import AuthenticatedUser, get_current_user
@@ -38,6 +47,7 @@ class InvestigationRequest(BaseModel):
     package_name: str = Field(min_length=1, max_length=214)
     version: str = Field(min_length=1, max_length=100)
     question: str = Field(min_length=1, max_length=1000)
+    model: str | None = Field(default=None, max_length=120)
 
     @field_validator("package_name")
     @classmethod
@@ -237,13 +247,11 @@ async def investigate_dependency(
     _append_event(session, investigation, user.id, "investigation.started")
     _commit_or_report_storage_error(session, "investigation start")
 
-    investigator = SecurityInvestigator(
-        BifrostClient(
-            base_url=settings.bifrost_base_url,
-            model=settings.bifrost_model,
-            virtual_key=settings.bifrost_virtual_key.get_secret_value(),
-        )
-    )
+    try:
+        bifrost_client = make_bifrost_client(settings, request.model)
+    except ModelNotAllowedError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    investigator = SecurityInvestigator(bifrost_client)
     try:
         result = await investigator.investigate(dependencies[0], request.question)
     except InvestigationError as exc:
@@ -403,11 +411,7 @@ async def preflight_dependency(
     if evidence:
         decision = "block"
         try:
-            reply = await BifrostClient(
-                base_url=settings.bifrost_base_url,
-                model=settings.bifrost_model,
-                virtual_key=settings.bifrost_virtual_key.get_secret_value(),
-            ).explain_finding(
+            reply = await make_bifrost_client(settings).explain_finding(
                 "Summarize only the verified advisory evidence and do not infer package safety.",
                 evidence,
             )

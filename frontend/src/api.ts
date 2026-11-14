@@ -124,10 +124,30 @@ export type BifrostHealth =
   | { status: 'not_configured' }
   | { status: 'backend_offline' }
 
-/** Round-trips a real, tiny completion through the Bifrost gateway via the backend. */
-export async function checkBifrostHealth(): Promise<BifrostHealth> {
+export type AIModel = {
+  id: string
+  provider: string
+  name: string
+  /** local = runs on your machine, free = free model id, free_tier = free key with rate limits */
+  tier?: 'local' | 'free' | 'free_tier' | 'paid'
+}
+export type AIModelCatalog = { default: string; fallbacks: string[]; models: AIModel[] }
+
+/** Models the backend allows; Bifrost routes each one by its "provider/" prefix. */
+export async function listAIModels(): Promise<AIModelCatalog | null> {
   try {
-    const res = await fetch(`${getApiBase()}/api/health/bifrost`, { signal: AbortSignal.timeout(15000) })
+    const res = await fetch(`${getApiBase()}/api/v1/ai/models`, { signal: AbortSignal.timeout(5000) })
+    return res.ok ? ((await res.json()) as AIModelCatalog) : null
+  } catch {
+    return null
+  }
+}
+
+/** Round-trips a real, tiny completion through the Bifrost gateway via the backend. */
+export async function checkBifrostHealth(model?: string): Promise<BifrostHealth> {
+  try {
+    const qs = model ? `?model=${encodeURIComponent(model)}` : ''
+    const res = await fetch(`${getApiBase()}/api/health/bifrost${qs}`, { signal: AbortSignal.timeout(40000) })
     if (!res.ok) return { status: 'backend_offline' }
     return (await res.json()) as BifrostHealth
   } catch {
@@ -423,6 +443,7 @@ export async function analyzeGitHubRepo(
     ref?: string
     question?: string
     project_id?: string
+    model?: string
   },
 ): Promise<GitHubAnalysisReport> {
   const token = cleanToken(rawToken)
