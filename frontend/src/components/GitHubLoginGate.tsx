@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Activity,
   AlertTriangle,
@@ -17,6 +17,7 @@ import {
   Layers,
   Lock,
   LogOut,
+  Menu,
   Moon,
   Package,
   RefreshCw,
@@ -25,6 +26,7 @@ import {
   Sparkles,
   Sun,
   Terminal,
+  X,
   XCircle,
 } from 'lucide-react'
 import { checkBifrostHealth, getGitHubUser, type GitHubUserProfile } from '../api'
@@ -39,6 +41,14 @@ const CAP_FILTERS: { id: CapCategory; label: string }[] = [
   { id: 'privacy', label: 'Privacy' },
   { id: 'cli', label: 'CLI' },
   { id: 'verification', label: 'Verification' },
+]
+
+const NAV_LINKS = [
+  { id: 'sw-capabilities', label: 'Capabilities' },
+  { id: 'sw-stack', label: 'Built on' },
+  { id: 'sw-workflow', label: 'Workflow' },
+  { id: 'sw-integrity', label: 'Zero-Theft' },
+  { id: 'sw-stream', label: 'Telemetry' },
 ]
 
 const STACK = [
@@ -79,6 +89,60 @@ export default function GitHubLoginGate({
   const [isSimulating, setIsSimulating] = useState(false)
   const [copiedText, setCopiedText] = useState<string | null>(null)
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+  const [activeSection, setActiveSection] = useState<string | null>(null)
+  const [indicator, setIndicator] = useState({ left: 0, width: 0 })
+  const pillRef = useRef<HTMLElement>(null)
+
+  // Scroll spy: the active link is the last section whose top has passed under the nav.
+  useEffect(() => {
+    let frame = 0
+    function update() {
+      frame = 0
+      setScrolled(window.scrollY > 8)
+      let current: string | null = null
+      for (const { id } of NAV_LINKS) {
+        const el = document.getElementById(id)
+        if (el && el.getBoundingClientRect().top <= 140) current = id
+      }
+      setActiveSection(current)
+    }
+    function onScroll() {
+      if (!frame) frame = requestAnimationFrame(update)
+    }
+    update()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      if (frame) cancelAnimationFrame(frame)
+    }
+  }, [])
+
+  // Slide the pill highlight under the active link.
+  useEffect(() => {
+    function measure() {
+      const btn = activeSection
+        ? pillRef.current?.querySelector<HTMLElement>(`[data-nav-id="${activeSection}"]`)
+        : null
+      setIndicator(btn ? { left: btn.offsetLeft, width: btn.offsetWidth } : { left: 0, width: 0 })
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [activeSection])
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const close = (e: KeyboardEvent) => e.key === 'Escape' && setMenuOpen(false)
+    const closeOnResize = () => window.innerWidth > 900 && setMenuOpen(false)
+    window.addEventListener('keydown', close)
+    window.addEventListener('resize', closeOnResize)
+    return () => {
+      window.removeEventListener('keydown', close)
+      window.removeEventListener('resize', closeOnResize)
+    }
+  }, [menuOpen])
   const [capFilter, setCapFilter] = useState<CapCategory>('all')
 
   useEffect(() => {
@@ -171,45 +235,110 @@ export default function GitHubLoginGate({
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} items={paletteItems} />
 
       {/* ── NAV ─────────────────────────────────────────────────── */}
-      <header className="sw-nav">
-        <div className="sw-nav-inner">
-          <div className="sw-nav-brand">
+      <header className={`sw-nav ss-nav ${scrolled ? 'is-scrolled' : ''}`}>
+        <div className="sw-nav-inner ss-nav-inner">
+          <button
+            type="button"
+            className="sw-nav-brand ss-nav-brand"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            aria-label="DepShield, back to top"
+          >
             <img
               src={theme === 'light' ? '/depshield-logo-light.png' : '/depshield-logo-dark.png'}
-              alt="DepShield Logo"
+              alt="DepShield"
               className="sw-nav-logo-img"
             />
-          </div>
-          <button type="button" className="ss-search-trigger" onClick={() => setPaletteOpen(true)} aria-label="Open command search">
-            <Search size={14} />
-            <span>Search sections, commands…</span>
-            <kbd>{isMac ? '⌘' : 'Ctrl'} K</kbd>
           </button>
-          <nav className="sw-nav-links">
-            <button type="button" onClick={() => scrollTo('sw-capabilities')}>Capabilities</button>
-            <button type="button" onClick={() => scrollTo('sw-workflow')}>Workflow</button>
-            <button type="button" onClick={() => scrollTo('sw-integrity')}>Zero-Theft</button>
-            <button type="button" onClick={() => scrollTo('sw-stream')}>Telemetry</button>
+
+          <nav className="ss-nav-pill" aria-label="Page sections" ref={pillRef}>
+            <span
+              className="ss-nav-indicator"
+              style={{ transform: `translateX(${indicator.left}px)`, width: indicator.width, opacity: indicator.width ? 1 : 0 }}
+              aria-hidden="true"
+            />
+            {NAV_LINKS.map((l) => (
+              <button
+                key={l.id}
+                type="button"
+                data-nav-id={l.id}
+                className={activeSection === l.id ? 'active' : ''}
+                aria-current={activeSection === l.id ? 'location' : undefined}
+                onClick={() => scrollTo(l.id)}
+              >
+                {l.label}
+              </button>
+            ))}
           </nav>
-          <div className="sw-nav-right">
+
+          <div className="ss-nav-right">
+            <button type="button" className="ss-nav-icon ss-nav-search" onClick={() => setPaletteOpen(true)} aria-label="Search (Ctrl+K)">
+              <Search size={15} />
+              <kbd>{isMac ? '⌘' : 'Ctrl'} K</kbd>
+            </button>
             {onToggleTheme && (
               <button
                 type="button"
-                className="theme-toggle-btn"
+                className="ss-nav-icon"
                 onClick={onToggleTheme}
                 title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-                aria-label="Toggle theme"
+                aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
               >
-                {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
-                <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
+                {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
               </button>
             )}
-            <span className="sw-bifrost-tag">BIFROST / MAXIM AI</span>
-            <button type="button" className="sw-cta-btn" onClick={() => scrollTo('sw-connect')}>
-              Connect <ArrowRight size={13} />
+            <a className="ss-powered" href="https://github.com/maximhq/bifrost" target="_blank" rel="noreferrer">
+              <Sparkles size={12} />
+              <span>
+                Powered by <strong>Bifrost</strong>
+              </span>
+            </a>
+            <button type="button" className="ss-nav-cta" onClick={focusConnect}>
+              <Github size={14} />
+              <span>Connect</span>
+              <ArrowRight size={13} className="ss-nav-cta-arrow" />
+            </button>
+            <button
+              type="button"
+              className="ss-nav-icon ss-nav-burger"
+              onClick={() => setMenuOpen((o) => !o)}
+              aria-expanded={menuOpen}
+              aria-controls="ss-mobile-menu"
+              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            >
+              {menuOpen ? <X size={17} /> : <Menu size={17} />}
             </button>
           </div>
         </div>
+
+        {menuOpen && (
+          <div id="ss-mobile-menu" className="ss-mobile-menu">
+            {NAV_LINKS.map((l, i) => (
+              <button
+                key={l.id}
+                type="button"
+                className={activeSection === l.id ? 'active' : ''}
+                style={{ animationDelay: `${i * 30}ms` }}
+                onClick={() => {
+                  setMenuOpen(false)
+                  scrollTo(l.id)
+                }}
+              >
+                <span>{l.label}</span>
+                <ArrowRight size={14} />
+              </button>
+            ))}
+            <button
+              type="button"
+              className="ss-mobile-cta"
+              onClick={() => {
+                setMenuOpen(false)
+                focusConnect()
+              }}
+            >
+              <Github size={15} /> Connect GitHub
+            </button>
+          </div>
+        )}
       </header>
 
       {/* ── HERO ────────────────────────────────────────────────── */}
