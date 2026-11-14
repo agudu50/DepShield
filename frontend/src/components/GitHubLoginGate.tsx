@@ -3,6 +3,7 @@ import {
   Activity,
   AlertTriangle,
   ArrowRight,
+  Boxes,
   Check,
   CheckCircle2,
   Copy,
@@ -13,16 +14,41 @@ import {
   Github,
   Globe,
   KeyRound,
+  Layers,
   Lock,
   LogOut,
   Moon,
+  Package,
   RefreshCw,
+  Search,
   ShieldCheck,
+  Sparkles,
   Sun,
   Terminal,
   XCircle,
 } from 'lucide-react'
-import { getGitHubUser, type GitHubUserProfile } from '../api'
+import { checkBifrostHealth, getGitHubUser, type BifrostHealth, type GitHubUserProfile } from '../api'
+import { bifrostHealthToEvent } from '../bifrostProbe'
+import CommandPalette, { type PaletteItem } from './CommandPalette'
+import '../landing-seesaw.css'
+
+type CapCategory = 'all' | 'ai' | 'privacy' | 'cli' | 'verification'
+const CAP_FILTERS: { id: CapCategory; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'ai', label: 'AI Reasoning' },
+  { id: 'privacy', label: 'Privacy' },
+  { id: 'cli', label: 'CLI' },
+  { id: 'verification', label: 'Verification' },
+]
+
+const STACK = [
+  { name: 'Bifrost by Maxim AI', tag: 'AI gateway', desc: 'OpenAI-compatible gateway that routes every explanation to your configured model.', icon: Sparkles, url: 'https://github.com/maximhq/bifrost' },
+  { name: 'OSV.dev', tag: 'Advisory feed', desc: 'Google’s open vulnerability database, the single source of truth for findings.', icon: Database, url: 'https://osv.dev' },
+  { name: 'GitHub', tag: 'Targets', desc: 'Read-only manifest discovery across your repositories and branches.', icon: Github, url: 'https://github.com' },
+  { name: 'npm', tag: 'Ecosystem', desc: 'package.json, package-lock.json and npm-shrinkwrap.json parsing.', icon: Package, url: 'https://www.npmjs.com' },
+  { name: 'PyPI', tag: 'Ecosystem', desc: 'requirements.txt, pyproject.toml, uv.lock, poetry.lock and Pipfile.lock.', icon: Boxes, url: 'https://pypi.org' },
+  { name: 'Neon', tag: 'Workspace', desc: 'Postgres with row-level security for multi-tenant scan history.', icon: Layers, url: 'https://neon.tech' },
+]
 import {
   getStoredEvents,
   subscribeTelemetry,
@@ -52,6 +78,9 @@ export default function GitHubLoginGate({
   const [telemetryEvents, setTelemetryEvents] = useState<TelemetryEvent[]>(() => getStoredEvents())
   const [isSimulating, setIsSimulating] = useState(false)
   const [copiedText, setCopiedText] = useState<string | null>(null)
+  const [paletteOpen, setPaletteOpen] = useState(false)
+  const [capFilter, setCapFilter] = useState<CapCategory>('all')
+  const [gateway, setGateway] = useState<BifrostHealth | null>(null)
 
   useEffect(() => {
     setTelemetryEvents(getStoredEvents())
@@ -59,6 +88,59 @@ export default function GitHubLoginGate({
       setTelemetryEvents(events)
     })
   }, [])
+
+  // Real gateway status for the hero/nav chip: one tiny live completion on load.
+  useEffect(() => {
+    let cancelled = false
+    checkBifrostHealth().then((h) => !cancelled && setGateway(h))
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setPaletteOpen((o) => !o)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  const isMac = typeof navigator !== 'undefined' && /mac/i.test(navigator.platform)
+  const capShown = (cat: Exclude<CapCategory, 'all'>) => capFilter === 'all' || capFilter === cat
+
+  const paletteItems: PaletteItem[] = [
+    { id: 'connect', group: 'Navigate', label: 'Connect GitHub token', hint: 'Start an audit', icon: <KeyRound size={14} />, run: () => focusConnect() },
+    { id: 'caps', group: 'Navigate', label: 'Capabilities', icon: <Sparkles size={14} />, run: () => scrollTo('sw-capabilities') },
+    { id: 'stack', group: 'Navigate', label: 'Built on', hint: 'Bifrost, OSV, GitHub…', icon: <Layers size={14} />, run: () => scrollTo('sw-stack') },
+    { id: 'workflow', group: 'Navigate', label: 'Workflow', icon: <Globe size={14} />, run: () => scrollTo('sw-workflow') },
+    { id: 'integrity', group: 'Navigate', label: 'Zero-Theft Guarantee', icon: <Lock size={14} />, run: () => scrollTo('sw-integrity') },
+    { id: 'stream', group: 'Navigate', label: 'Live telemetry stream', icon: <Activity size={14} />, run: () => scrollTo('sw-stream') },
+    { id: 'probe', group: 'Actions', label: 'Probe Bifrost gateway', hint: 'Real round-trip', icon: <ShieldCheck size={14} />, run: () => { scrollTo('sw-stream'); void runSandboxProbe() } },
+    { id: 'cli', group: 'Actions', label: 'Show CLI install steps', icon: <Terminal size={14} />, run: () => { setWorkflowTab('cli'); scrollTo('sw-workflow') } },
+    ...(onToggleTheme ? [{ id: 'theme', group: 'Actions', label: `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`, icon: theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />, run: onToggleTheme }] : []),
+    ...(onSkipToWorkspace ? [{ id: 'workspace', group: 'Actions', label: 'Open Neon workspace', icon: <Database size={14} />, run: onSkipToWorkspace }] : []),
+    ...['git clone https://github.com/agudu50/DepShield.git', 'depshield add express@4.18.2', 'depshield github analyze owner/repo', 'depshield monitor'].map((cmd) => ({
+      id: `copy-${cmd}`, group: 'Copy command', label: cmd, icon: <Copy size={14} />, run: () => copyCommand(cmd),
+    })),
+  ]
+
+  function focusConnect() {
+    scrollTo('sw-connect')
+    window.setTimeout(() => document.querySelector<HTMLInputElement>('.sw-token-input')?.focus(), 350)
+  }
+
+  const gatewayChip = (() => {
+    if (!gateway) return { cls: 'pending', text: 'Checking Bifrost…', title: 'Sending a live probe to the gateway' }
+    if (gateway.status === 'live')
+      return { cls: 'live', text: `Bifrost live · ${gateway.latency_ms}ms`, title: `${gateway.model} · response ${gateway.gateway_response_id ?? 'n/a'}` }
+    if (gateway.status === 'unreachable') return { cls: 'down', text: 'Bifrost offline', title: gateway.error }
+    if (gateway.status === 'not_configured') return { cls: 'down', text: 'Bifrost not configured', title: 'Set BIFROST_BASE_URL' }
+    return { cls: 'down', text: 'Backend offline', title: 'Start the DepShield backend on :8000' }
+  })()
 
   function copyCommand(cmd: string) {
     navigator.clipboard.writeText(cmd)
@@ -70,21 +152,13 @@ export default function GitHubLoginGate({
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  function runSandboxProbe() {
+  async function runSandboxProbe() {
     setIsSimulating(true)
-    setTimeout(() => {
-      addTelemetryEvent({
-        source: 'cli',
-        category: 'privacy_guard',
-        action: 'SANDBOX_ISOLATION_PROBE',
-        target: 'Environment & File Descriptors',
-        details: 'Active boundary check passed. ZERO source files (.ts, .py, .js) or local secrets (.env) accessible. Pinned tuples only.',
-        verdict: 'safe',
-        bytesSent: 0,
-        sourceCodeRead: 0,
-      })
+    try {
+      addTelemetryEvent(bifrostHealthToEvent(await checkBifrostHealth()))
+    } finally {
       setIsSimulating(false)
-    }, 280)
+    }
   }
 
   async function handleConnect(e: React.FormEvent) {
@@ -112,6 +186,7 @@ export default function GitHubLoginGate({
 
   return (
     <div className="sw-root">
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} items={paletteItems} />
 
       {/* ── NAV ─────────────────────────────────────────────────── */}
       <header className="sw-nav">
@@ -123,6 +198,11 @@ export default function GitHubLoginGate({
               className="sw-nav-logo-img"
             />
           </div>
+          <button type="button" className="ss-search-trigger" onClick={() => setPaletteOpen(true)} aria-label="Open command search">
+            <Search size={14} />
+            <span>Search sections, commands…</span>
+            <kbd>{isMac ? '⌘' : 'Ctrl'} K</kbd>
+          </button>
           <nav className="sw-nav-links">
             <button type="button" onClick={() => scrollTo('sw-capabilities')}>Capabilities</button>
             <button type="button" onClick={() => scrollTo('sw-workflow')}>Workflow</button>
@@ -142,7 +222,10 @@ export default function GitHubLoginGate({
                 <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
               </button>
             )}
-            <span className="sw-bifrost-tag">BIFROST / MAXIM AI</span>
+            <span className={`ss-gateway-chip ${gatewayChip.cls}`} title={gatewayChip.title}>
+              <span className="ss-gateway-dot" />
+              {gatewayChip.text}
+            </span>
             <button type="button" className="sw-cta-btn" onClick={() => scrollTo('sw-connect')}>
               Connect <ArrowRight size={13} />
             </button>
@@ -192,8 +275,8 @@ export default function GitHubLoginGate({
                 </div>
                 <div className="sw-stat-div" />
                 <div className="sw-stat">
-                  <span className="sw-stat-num">Live</span>
-                  <span className="sw-stat-label">real-time audit<br />telemetry stream</span>
+                  <span className="sw-stat-num">{telemetryEvents.length}</span>
+                  <span className="sw-stat-label">audit events<br />logged this session</span>
                 </div>
               </div>
             </div>
@@ -290,8 +373,23 @@ export default function GitHubLoginGate({
             </div>
           </div>
 
-          <div className="sw-caps-grid">
-            <div className="sw-cap-item">
+          <div className="ss-filter-row" role="tablist" aria-label="Filter capabilities">
+            {CAP_FILTERS.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                role="tab"
+                aria-selected={capFilter === f.id}
+                className={`ss-filter-pill ${capFilter === f.id ? 'active' : ''}`}
+                onClick={() => setCapFilter(f.id)}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="sw-caps-grid ss-caps-grid">
+            <div className="sw-cap-item ss-card" hidden={!capShown('ai')}>
               <div className="sw-cap-num">A</div>
               <div className="sw-cap-body">
                 <span className="sw-cap-label">BIFROST GATEWAY · MAXIM AI</span>
@@ -302,6 +400,7 @@ export default function GitHubLoginGate({
                   and writes a non-breaking upgrade plan.
                 </p>
                 <div className="sw-cap-evidence">
+                  <span className="ss-example-tag">Illustrative example</span>
                   <div className="sw-evidence-row">
                     <span className="sw-evidence-label">Target</span>
                     <code className="sw-evidence-val">axios@1.5.0 · CVE-2023-45857 (SSRF)</code>
@@ -314,7 +413,7 @@ export default function GitHubLoginGate({
               </div>
             </div>
 
-            <div className="sw-cap-item">
+            <div className="sw-cap-item ss-card" hidden={!capShown('privacy')}>
               <div className="sw-cap-num">B</div>
               <div className="sw-cap-body">
                 <span className="sw-cap-label">SANDBOX GUARANTEE</span>
@@ -340,7 +439,7 @@ export default function GitHubLoginGate({
               </div>
             </div>
 
-            <div className="sw-cap-item">
+            <div className="sw-cap-item ss-card" hidden={!capShown('cli')}>
               <div className="sw-cap-num">C</div>
               <div className="sw-cap-body">
                 <span className="sw-cap-label">CLI PROTECTION</span>
@@ -357,7 +456,7 @@ export default function GitHubLoginGate({
               </div>
             </div>
 
-            <div className="sw-cap-item">
+            <div className="sw-cap-item ss-card" hidden={!capShown('verification')}>
               <div className="sw-cap-num">D</div>
               <div className="sw-cap-body">
                 <span className="sw-cap-label">DETERMINISTIC VERIFICATION</span>
@@ -376,6 +475,38 @@ export default function GitHubLoginGate({
             </div>
           </div>
 
+        </div>
+      </section>
+
+      <div className="sw-rule" />
+
+      {/* ── BUILT ON (gallery cards) ───────────────────────────── */}
+      <section id="sw-stack" className="sw-section">
+        <div className="sw-section-inner">
+          <div className="sw-section-head">
+            <span className="sw-section-num">✦</span>
+            <div>
+              <h2 className="sw-section-title">Built on</h2>
+              <p className="sw-section-sub">
+                Every finding traces back to one of these sources. Nothing in between invents data.
+              </p>
+            </div>
+          </div>
+          <div className="ss-gallery">
+            {STACK.map(({ name, tag, desc, icon: Icon, url }) => (
+              <a key={name} href={url} target="_blank" rel="noreferrer" className="ss-gallery-card">
+                <span className="ss-gallery-logo"><Icon size={22} /></span>
+                <span className="ss-gallery-text">
+                  <span className="ss-gallery-title">
+                    {name}
+                    <ExternalLink size={12} className="ss-gallery-ext" />
+                  </span>
+                  <span className="ss-gallery-desc">{desc}</span>
+                </span>
+                <span className="ss-gallery-tag">{tag}</span>
+              </a>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -752,8 +883,8 @@ export default function GitHubLoginGate({
                   disabled={isSimulating}
                 >
                   {isSimulating
-                    ? <><RefreshCw size={11} className="animate-spin" /> Verifying…</>
-                    : <><ShieldCheck size={11} /> Probe Sandbox Isolation</>}
+                    ? <><RefreshCw size={11} className="animate-spin" /> Probing…</>
+                    : <><ShieldCheck size={11} /> Probe Bifrost Gateway</>}
                 </button>
               </div>
 

@@ -111,6 +111,13 @@ class GitHubAnalysisReport:
     dependencies: list[GitHubScannedDependency]
     agent_summary: str
     recommendations: list[str]
+    # Provenance of agent_summary so clients never present template text as AI output.
+    # "bifrost": a live gateway completion; "deterministic": a server-side template.
+    summary_source: Literal["bifrost", "deterministic"] = "deterministic"
+    summary_fallback_reason: str | None = None
+    ai_model: str | None = None
+    gateway_response_id: str | None = None
+    ai_usage: dict[str, int] | None = None
 
 
 class GitHubService:
@@ -391,6 +398,11 @@ class GitHubService:
             recommendations.append("All checked pinned dependencies are currently clear of known OSV advisories.")
 
         agent_summary = ""
+        summary_source: Literal["bifrost", "deterministic"] = "deterministic"
+        fallback_reason: str | None = None
+        ai_model: str | None = None
+        gateway_response_id: str | None = None
+        ai_usage: dict[str, int] | None = None
         if total_vulns > 0:
             # Try AI Agent investigation via Bifrost if provided
             if bifrost:
@@ -402,13 +414,20 @@ class GitHubService:
                 try:
                     bifrost_res = await bifrost.explain_finding(agent_prompt, all_evidence[:20])
                     agent_summary = bifrost_res.answer
+                    summary_source = "bifrost"
+                    ai_model = bifrost_res.model
+                    gateway_response_id = bifrost_res.response_id
+                    ai_usage = bifrost_res.usage
                 except BifrostError:
+                    fallback_reason = "bifrost_unavailable"
                     agent_summary = (
-                        f"DepShield Security Agent verified {total_vulns} active advisories across "
+                        f"DepShield verified {total_vulns} active OSV advisories across "
                         f"{len(scanned_deps)} dependencies in '{owner}/{repo}'. "
-                        "Immediate remediation is recommended for the flagged packages."
+                        "The Bifrost AI gateway could not be reached, so no AI analysis was generated. "
+                        "Review the flagged packages below."
                     )
             else:
+                fallback_reason = "bifrost_not_configured"
                 agent_summary = (
                     f"DepShield Security Agent verified {total_vulns} active advisories across "
                     f"{len(scanned_deps)} dependencies in '{owner}/{repo}'. "
@@ -435,5 +454,10 @@ class GitHubService:
             dependencies=scanned_deps,
             agent_summary=agent_summary,
             recommendations=recommendations,
+            summary_source=summary_source,
+            summary_fallback_reason=fallback_reason,
+            ai_model=ai_model,
+            gateway_response_id=gateway_response_id,
+            ai_usage=ai_usage,
         )
 

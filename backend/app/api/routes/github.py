@@ -113,6 +113,11 @@ async def analyze_repository(
             "risk_level": report.risk_level,
             "agent_summary": report.agent_summary,
             "recommendations": report.recommendations,
+            "summary_source": report.summary_source,
+            "summary_fallback_reason": report.summary_fallback_reason,
+            "ai_model": report.ai_model,
+            "gateway_response_id": report.gateway_response_id,
+            "ai_usage": report.ai_usage,
             "dependencies": [
                 {
                     "name": d.name,

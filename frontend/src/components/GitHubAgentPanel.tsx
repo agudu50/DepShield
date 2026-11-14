@@ -202,16 +202,27 @@ export default function GitHubAgentPanel({
         },
         ...(result.vulnerability_count > 0
           ? [
-              {
-                source: 'agent' as const,
-                category: 'policy_gate' as const,
-                action: 'ADVISORY_EVALUATION',
-                target: `Bifrost by Maxim AI`,
-                details: `Bifrost AI Agent evaluated ${result.vulnerability_count} flagged advisories across dependency tree. Verified reachability and synthesized remediation steps.`,
-                verdict: 'warning' as const,
-                bytesSent: 340,
-                sourceCodeRead: 0,
-              },
+              result.summary_source === 'bifrost'
+                ? {
+                    source: 'gateway' as const,
+                    category: 'policy_gate' as const,
+                    action: 'BIFROST_EXPLANATION',
+                    target: `Bifrost · ${result.ai_model ?? 'unknown model'}`,
+                    details: `Live completion ${result.gateway_response_id ?? '(no id)'} explained ${result.vulnerability_count} OSV advisories. Tokens: ${result.ai_usage?.total_tokens ?? 'n/a'}.`,
+                    verdict: 'warning' as const,
+                    bytesSent: 0,
+                    sourceCodeRead: 0,
+                  }
+                : {
+                    source: 'gateway' as const,
+                    category: 'policy_gate' as const,
+                    action: 'BIFROST_UNAVAILABLE',
+                    target: 'Bifrost gateway',
+                    details: `No AI explanation generated (${result.summary_fallback_reason ?? 'unknown'}). Showing deterministic OSV summary only.`,
+                    verdict: 'warning' as const,
+                    bytesSent: 0,
+                    sourceCodeRead: 0,
+                  },
             ]
           : []),
         {
@@ -506,7 +517,21 @@ export default function GitHubAgentPanel({
               <div className="agent-summary-box">
                 <div className="agent-box-title">
                   <Sparkles size={16} />
-                  <h4>AI Agent Intelligence Summary</h4>
+                  <h4>{report.summary_source === 'bifrost' ? 'Bifrost AI Analysis' : 'OSV Summary'}</h4>
+                  {report.summary_source === 'bifrost' ? (
+                    <span className="provenance-chip live" title={report.gateway_response_id ?? undefined}>
+                      <span className="live-pulse" /> Live · {report.ai_model}
+                      {report.ai_usage?.total_tokens ? ` · ${report.ai_usage.total_tokens} tok` : ''}
+                    </span>
+                  ) : (
+                    <span className="provenance-chip fallback">
+                      {report.vulnerability_count === 0
+                        ? 'No AI needed: no advisories'
+                        : report.summary_fallback_reason === 'bifrost_not_configured'
+                          ? 'Bifrost not configured'
+                          : 'Bifrost unreachable: no AI output'}
+                    </span>
+                  )}
                 </div>
                 <p className="agent-narrative">{report.agent_summary}</p>
 
@@ -516,7 +541,7 @@ export default function GitHubAgentPanel({
                     <div className="rec-box-head">
                       <Sparkles size={14} className="text-purple" />
                       <h5>Actionable Upgrades & Fixes ({report.recommendations.length})</h5>
-                      <span className="rec-box-tag">Bifrost Verified Non-Breaking</span>
+                      <span className="rec-box-tag">From OSV advisories</span>
                     </div>
 
                     <div className="rec-cards-list">
@@ -565,7 +590,8 @@ export default function GitHubAgentPanel({
                             </div>
 
                             <p className="rec-clean-desc">
-                              Bifrost Security Agent verified upgrade available to address active advisory. Verified non-breaking semver bump.
+                              Upgrade to a release outside the affected range listed in the linked advisories. Check
+                              the changelog for breaking changes before bumping a major version.
                             </p>
 
                             <div className="rec-card-footer">
@@ -587,7 +613,7 @@ export default function GitHubAgentPanel({
                               </div>
                               <span className="rec-bifrost-stamp">
                                 <ShieldCheck size={12} />
-                                <span>Bifrost Verified</span>
+                                <span>OSV.dev</span>
                               </span>
                             </div>
                           </div>

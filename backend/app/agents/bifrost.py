@@ -35,11 +35,17 @@ class BifrostClient:
         self._virtual_key = virtual_key
         self._transport = transport
 
-    async def explain_finding(self, question: str, evidence: list[dict[str, Any]]) -> BifrostReply:
-        headers = {}
-        if self._virtual_key:
-            headers["Authorization"] = f"Bearer {self._virtual_key}"
+    async def ping(self) -> BifrostReply:
+        """Send a tiny real completion through the gateway to prove it is live."""
+        payload = {
+            "model": self._model,
+            "temperature": 0,
+            "max_tokens": 5,
+            "messages": [{"role": "user", "content": "Reply with exactly the word: pong"}],
+        }
+        return await self._complete(payload, timeout=10.0)
 
+    async def explain_finding(self, question: str, evidence: list[dict[str, Any]]) -> BifrostReply:
         payload = {
             "model": self._model,
             "temperature": 0.1,
@@ -65,10 +71,16 @@ class BifrostClient:
                 },
             ],
         }
+        return await self._complete(payload, timeout=20.0)
+
+    async def _complete(self, payload: dict[str, Any], timeout: float) -> BifrostReply:
+        headers = {}
+        if self._virtual_key:
+            headers["Authorization"] = f"Bearer {self._virtual_key}"
 
         try:
             async with httpx.AsyncClient(
-                timeout=httpx.Timeout(20.0),
+                timeout=httpx.Timeout(timeout),
                 transport=self._transport,
             ) as client:
                 async with client.stream(

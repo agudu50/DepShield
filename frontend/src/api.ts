@@ -64,6 +64,12 @@ export type GitHubAnalysisReport = {
   risk_level: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'CLEAN'
   agent_summary: string
   recommendations: string[]
+  /** 'bifrost' only when the summary is a live gateway completion; otherwise a server template. */
+  summary_source?: 'bifrost' | 'deterministic'
+  summary_fallback_reason?: 'bifrost_unavailable' | 'bifrost_not_configured' | null
+  ai_model?: string | null
+  gateway_response_id?: string | null
+  ai_usage?: Record<string, number> | null
   dependencies: {
     name: string
     version: string
@@ -109,6 +115,23 @@ export async function checkBackendHealth(): Promise<{ online: boolean; message?:
     return { online: res.ok }
   } catch {
     return { online: false, message: 'Backend service offline at ' + apiBase }
+  }
+}
+
+export type BifrostHealth =
+  | { status: 'live'; model: string; configured_model: string; gateway_response_id: string | null; usage: Record<string, number>; latency_ms: number }
+  | { status: 'unreachable'; configured_model: string; error: string }
+  | { status: 'not_configured' }
+  | { status: 'backend_offline' }
+
+/** Round-trips a real, tiny completion through the Bifrost gateway via the backend. */
+export async function checkBifrostHealth(): Promise<BifrostHealth> {
+  try {
+    const res = await fetch(`${getApiBase()}/api/health/bifrost`, { signal: AbortSignal.timeout(15000) })
+    if (!res.ok) return { status: 'backend_offline' }
+    return (await res.json()) as BifrostHealth
+  } catch {
+    return { status: 'backend_offline' }
   }
 }
 

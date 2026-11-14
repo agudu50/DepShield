@@ -27,6 +27,8 @@ import {
   addTelemetryEvent,
   type TelemetryEvent,
 } from '../telemetry'
+import { checkBifrostHealth } from '../api'
+import { bifrostHealthToEvent } from '../bifrostProbe'
 
 interface CliCommandInfo {
   id: string
@@ -83,21 +85,13 @@ export default function LiveAuditMonitor() {
     setTimeout(() => setCopiedCmd(null), 2000)
   }
 
-  function handleVerifySandbox() {
+  async function handleVerifySandbox() {
     setIsVerifying(true)
-    setTimeout(() => {
-      addTelemetryEvent({
-        source: 'cli',
-        category: 'privacy_guard',
-        action: 'SANDBOX_ISOLATION_PROBE',
-        target: 'Environment & File Descriptors',
-        details: 'Active boundary check passed. ZERO source files (.ts, .py, .js) or local secrets (.env) accessible. Pinned tuples only.',
-        verdict: 'safe',
-        bytesSent: 0,
-        sourceCodeRead: 0,
-      })
+    try {
+      addTelemetryEvent(bifrostHealthToEvent(await checkBifrostHealth()))
+    } finally {
       setIsVerifying(false)
-    }, 280)
+    }
   }
 
   function handleClearFeed() {
@@ -141,10 +135,10 @@ export default function LiveAuditMonitor() {
               className="primary-button simulate-btn"
               onClick={handleVerifySandbox}
               disabled={isVerifying}
-              title="Run a live verification probe against the sandbox boundary"
+              title="Send a real minimal completion through the Bifrost gateway and log the result"
             >
               <ShieldCheck size={14} />
-              <span>{isVerifying ? 'Verifying Sandbox...' : 'Probe Sandbox Boundary'}</span>
+              <span>{isVerifying ? 'Probing Bifrost…' : 'Probe Bifrost Gateway'}</span>
             </button>
           </div>
         </div>
