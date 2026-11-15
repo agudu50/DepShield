@@ -114,14 +114,22 @@
 }
 .hbd-top.is-scrolled { border-bottom-color: var(--ss-border); box-shadow: 0 10px 30px -22px var(--hb-shadow); }
 .hbd-top-inner {
-  max-width: 1360px;
-  margin: 0 auto;
-  padding: 12px 32px;
+  max-width: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 12px clamp(20px, 2.5vw, 40px);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 18px;
 }
-.hbd-brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.hbd-brand {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
 .hbd-brand-logo { height: 32px; width: auto; display: block; }
 .hbd-brand-sep { color: var(--ss-border-strong); font-size: 1.2rem; }
 .hbd-brand-ws { font-family: var(--hb-serif); font-size: 1.15rem; color: var(--ss-muted); white-space: nowrap; }
@@ -131,6 +139,7 @@
   display: flex;
   align-items: center;
   gap: 2px;
+  flex: 0 0 auto;
   margin: 0 auto;
   padding: 4px;
   min-width: 0;
@@ -201,7 +210,14 @@
   animation: hb-blink 2s ease-in-out infinite;
 }
 
-.hbd-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.hbd-actions {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
 .hbd-user { position: relative; }
 .hbd-user-btn {
   display: inline-flex;
@@ -258,7 +274,11 @@
 .hbd-menu-item:focus-visible { background: var(--ss-surface-2); color: var(--ss-text); outline: none; }
 
 /* ── Main + page header ──────────────────────────────────────── */
-.main-panel.hbd-main { max-width: 1360px; margin: 0 auto; padding: 44px 32px 110px; }
+.main-panel.hbd-main {
+  max-width: 1540px;
+  margin: 0 auto;
+  padding: 40px clamp(20px, 2.5vw, 40px) 110px;
+}
 .hbd-page-head { display: grid; gap: 12px; margin-bottom: 32px; animation: hbd-rise 0.6s var(--ss-spring) both; }
 .hbd-page-title {
   margin: 0;
@@ -524,8 +544,9 @@ html[data-theme='light'] { background: #f6f5f1; }
 }
 @media (max-width: 720px) {
   .hbd-top-inner { flex-wrap: wrap; padding: 10px 16px; gap: 10px; }
+  .hbd-brand { flex: initial; }
   .hbd-tabs { order: 3; width: 100%; margin: 0; }
-  .hbd-actions { margin-left: auto; }
+  .hbd-actions { flex: initial; margin-left: auto; }
   .hbd-user-btn span, .ss-nav-search kbd { display: none; }
   .main-panel.hbd-main { padding: 28px 16px 88px; }
   .hbd-toolbar-right { margin-left: 0; }

@@ -9,24 +9,25 @@ import {
   Copy,
   ExternalLink,
   FileCode,
-  FolderGit2,
+  FolderOpen,
   GitBranch,
   Globe,
   Lock,
+  PackageSearch,
   RefreshCw,
+  ScanSearch,
   Search,
+  X,
   Shield,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
   Star,
-  Terminal,
   Zap,
 } from 'lucide-react'
 import {
   analyzeGitHubRepo,
   detectGitHubManifests,
-  listGitHubRepos,
   type GitHubAnalysisReport,
   type GitHubManifestFile,
   type GitHubRepository,
@@ -34,31 +35,50 @@ import {
 } from '../api'
 import { addTelemetryBatch } from '../telemetry'
 import ModelPicker from './ModelPicker'
+import RepoSidebar from './RepoSidebar'
+import {
+  auditTelemetry,
+  coveredByLockfile,
+  groupByDir,
+  mergeReports,
+  recommendedSelection,
+  type ManifestRun,
+} from './manifestAudit'
 
 interface GitHubAgentPanelProps {
   token: string
   user: GitHubUserProfile
   report: GitHubAnalysisReport | null
   setReport: (report: GitHubAnalysisReport | null) => void
+  /** Optional: jump to the manual scanner (used when a repo has no detectable manifests). */
+  onManualScan?: () => void
 }
+
+const PRESETS = [
+  { label: 'Comprehensive audit', text: 'Identify all critical vulnerabilities, assess reachability, and provide safe upgrade paths.' },
+  { label: 'RCE & exploitability', text: 'Focus strictly on remote code execution, prototype pollution, and SSRF.' },
+  { label: 'Safe upgrade paths', text: 'Recommend the smallest version bump that leaves each affected range, and flag likely breaking changes.' },
+]
+const SCANNED_DIRS = ['repository root', 'backend/', 'frontend/', 'server/', 'client/', 'src/']
+const SUPPORTED_FILES = ['package.json', 'package-lock.json', 'npm-shrinkwrap.json', 'requirements.txt', 'pyproject.toml', 'uv.lock', 'poetry.lock', 'Pipfile.lock']
+const SUPPORTED_LANGS = ['javascript', 'typescript', 'python', 'jupyter notebook', 'vue', 'svelte']
 
 export default function GitHubAgentPanel({
   token,
-  user: _user,
+  user,
   report,
   setReport,
+  onManualScan,
 }: GitHubAgentPanelProps) {
-  const [repos, setRepos] = useState<GitHubRepository[]>([])
-  const [searchQuery, setSearchQuery] = useState('')
   const [selectedRepo, setSelectedRepo] = useState<GitHubRepository | null>(null)
   const [manifests, setManifests] = useState<GitHubManifestFile[]>([])
-  const [selectedManifest, setSelectedManifest] = useState<string>('')
-  const [question, setQuestion] = useState(
-    'Identify all critical vulnerabilities, assess reachability, and provide safe upgrade paths.',
-  )
+  const [selectedManifests, setSelectedManifests] = useState<string[]>([])
+  const [runs, setRuns] = useState<ManifestRun[]>([])
+  const [reportView, setReportView] = useState<string>('all')
+  const [manifestReload, setManifestReload] = useState(0)
+  const [question, setQuestion] = useState(PRESETS[0].text)
 
   const [aiModel, setAiModel] = useState<string | null>(null)
-  const [loadingRepos, setLoadingRepos] = useState(false)
   const [loadingManifests, setLoadingManifests] = useState(false)
   const [analyzing, setAnalyzing] = useState(false)
   const [error, setError] = useState('')
@@ -81,35 +101,11 @@ export default function GitHubAgentPanel({
     setTimeout(() => setCopiedCmd(null), 2000)
   }
 
-  // Load repositories on mount or when token changes
-  useEffect(() => {
-    let active = true
-    setLoadingRepos(true)
-    setError('')
-
-    listGitHubRepos(token)
-      .then((repoList) => {
-        if (!active) return
-        setRepos(repoList)
-      })
-      .catch((err) => {
-        if (!active) return
-        setError(err instanceof Error ? err.message : 'Failed to load GitHub repositories')
-      })
-      .finally(() => {
-        if (active) setLoadingRepos(false)
-      })
-
-    return () => {
-      active = false
-    }
-  }, [token])
-
   // When a repository is selected, discover its manifests
   useEffect(() => {
     if (!token || !selectedRepo) {
       setManifests([])
-      setSelectedManifest('')
+      setSelectedManifests([])
       return
     }
 
@@ -122,13 +118,7 @@ export default function GitHubAgentPanel({
       .then((items) => {
         if (!active) return
         setManifests(items)
-        if (items.length > 0) {
-          // Prefer lockfile for complete dependency inventory
-          const lockfile = items.find((m) => m.manifest_type === 'lockfile')
-          setSelectedManifest(lockfile ? lockfile.path : items[0].path)
-        } else {
-          setSelectedManifest('')
-        }
+        setSelectedManifests(recommendedSelection(items))
       })
       .catch((err) => {
         if (!active) return
@@ -141,7 +131,11 @@ export default function GitHubAgentPanel({
     return () => {
       active = false
     }
-  }, [selectedRepo, token])
+  }, [selectedRepo, token, manifestReload])
+
+  function toggleManifest(path: string) {
+    setSelectedManifests((cur) => (cur.includes(path) ? cur.filter((p) => p !== path) : [...cur, path]))
+  }
 
   function handleSelectRepo(repo: GitHubRepository) {
     setSelectedRepo(repo)
@@ -152,108 +146,66 @@ export default function GitHubAgentPanel({
   }
 
   async function handleRunAgentAnalysis() {
-    if (!token || !selectedRepo || !selectedManifest) return
+    if (!token || !selectedRepo || selectedManifests.length === 0) return
+    // Audit in discovery order so progress reads top-to-bottom like the list.
+    const queue = manifests.map((m) => m.path).filter((p) => selectedManifests.includes(p))
+    const repo = selectedRepo
+    const [owner, repoName] = repo.full_name.split('/')
+
     setAnalyzing(true)
     setError('')
     setNotice('')
+    let current: ManifestRun[] = queue.map((path) => ({ path, status: 'pending' }))
+    setRuns(current)
 
-    const [owner, repoName] = selectedRepo.full_name.split('/')
-    try {
-      const result = await analyzeGitHubRepo(token, owner, repoName, {
-        manifest_path: selectedManifest,
-        ref: selectedRepo.default_branch,
-        question: question.trim() || undefined,
-        model: aiModel ?? undefined,
-      })
-      setReport(result)
-      setViewMode('report')
-      setDepFilter(result.vulnerability_count > 0 ? 'vuln' : 'all')
-      setDepPage(1)
-      setNotice(`Agent audit complete for ${selectedRepo.full_name}! Verified ${result.vulnerability_count} advisories.`)
-
-      // Record 100% REAL telemetry traces into the live audit feed
-      addTelemetryBatch([
-        {
-          source: 'agent',
-          category: 'file_read',
-          action: 'DESCRIPTOR_DISCOVERY',
-          target: `${selectedRepo.full_name}/${selectedManifest}`,
-          details: `Verified manifest schema on branch '${selectedRepo.default_branch}'. Parsed ${result.dependency_count} declared dependencies (${result.checked_count} exact pinned). ZERO source files (.ts, .py, .js) touched.`,
-          verdict: 'safe',
-          bytesSent: 0,
-          sourceCodeRead: 0,
-        },
-        {
-          source: 'agent',
-          category: 'privacy_guard',
-          action: 'SOURCE_CODE_SANDBOX',
-          target: `${selectedRepo.full_name} (Sandbox Boundary)`,
-          details: `Sandbox boundary enforced. Application logic, proprietary source code, and secrets (.env) strictly bypassed and omitted from memory.`,
-          verdict: 'safe',
-          bytesSent: 0,
-          sourceCodeRead: 0,
-        },
-        {
-          source: 'gateway',
-          category: 'osv_query',
-          action: 'OSV_BATCH_LOOKUP',
-          target: 'https://api.osv.dev/v1/querybatch',
-          details: `Dispatched ${result.checked_count} exact pinned package tuples to official OSV.dev feed. Matched ${result.vulnerability_count} active advisories.`,
-          verdict: result.vulnerability_count > 0 ? 'warning' : 'safe',
-          bytesSent: result.checked_count * 32,
-          sourceCodeRead: 0,
-        },
-        ...(result.vulnerability_count > 0
-          ? [
-              result.summary_source === 'bifrost'
-                ? {
-                    source: 'gateway' as const,
-                    category: 'policy_gate' as const,
-                    action: 'BIFROST_EXPLANATION',
-                    target: `Bifrost · ${result.ai_model ?? 'unknown model'}`,
-                    details: `Live completion ${result.gateway_response_id ?? '(no id)'} explained ${result.vulnerability_count} OSV advisories. Tokens: ${result.ai_usage?.total_tokens ?? 'n/a'}.`,
-                    verdict: 'warning' as const,
-                    bytesSent: 0,
-                    sourceCodeRead: 0,
-                  }
-                : {
-                    source: 'gateway' as const,
-                    category: 'policy_gate' as const,
-                    action: 'BIFROST_UNAVAILABLE',
-                    target: 'Bifrost gateway',
-                    details: `No AI explanation generated (${result.summary_fallback_reason ?? 'unknown'}). Showing deterministic OSV summary only.`,
-                    verdict: 'warning' as const,
-                    bytesSent: 0,
-                    sourceCodeRead: 0,
-                  },
-            ]
-          : []),
-        {
-          source: 'agent',
-          category: 'policy_gate',
-          action: 'AUDIT_COMPLETE',
-          target: `${selectedRepo.full_name} (${result.risk_level})`,
-          details: `Autonomous security audit finished. Risk Assessment: [${result.risk_level}]. ${result.recommendations.length} actionable recommendation(s) generated.`,
-          verdict: result.risk_level === 'CLEAN' ? 'safe' : 'warning',
-          bytesSent: 160,
-          sourceCodeRead: 0,
-        },
-      ])
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'The audit couldn’t be completed. Please try again in a moment.')
-    } finally {
-      setAnalyzing(false)
+    for (const path of queue) {
+      current = current.map((r) => (r.path === path ? { ...r, status: 'running' } : r))
+      setRuns(current)
+      try {
+        const result = await analyzeGitHubRepo(token, owner, repoName, {
+          manifest_path: path,
+          ref: repo.default_branch,
+          question: question.trim() || undefined,
+          model: aiModel ?? undefined,
+        })
+        current = current.map((r) => (r.path === path ? { ...r, status: 'done', report: result } : r))
+        addTelemetryBatch(auditTelemetry(repo.full_name, repo.default_branch, path, result))
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'This manifest couldn’t be audited.'
+        current = current.map((r) => (r.path === path ? { ...r, status: 'failed', error: message } : r))
+      }
+      setRuns(current)
     }
+
+    const ok = current.filter((r) => r.report).map((r) => ({ path: r.path, report: r.report! }))
+    const failed = current.filter((r) => r.status === 'failed')
+    const merged = mergeReports(ok)
+    setAnalyzing(false)
+
+    if (!merged) {
+      setError(failed[0]?.error ?? 'The audit couldn’t be completed. Please try again in a moment.')
+      return
+    }
+    setReport(merged)
+    setReportView('all')
+    setViewMode('report')
+    setDepFilter(merged.vulnerability_count > 0 ? 'vuln' : 'all')
+    setDepPage(1)
+    const files = `${ok.length} manifest${ok.length === 1 ? '' : 's'}`
+    setNotice(
+      `Audit complete for ${repo.full_name}: ${merged.vulnerability_count} advisor${merged.vulnerability_count === 1 ? 'y' : 'ies'} across ${files}.` +
+        (failed.length ? ` ${failed.length} file${failed.length === 1 ? '' : 's'} couldn’t be audited.` : ''),
+    )
   }
 
-  const filteredRepos = repos.filter(
-    (r) =>
-      r.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (r.description && r.description.toLowerCase().includes(searchQuery.toLowerCase())),
-  )
+  // Per-manifest results from this session (only while they belong to the current report)
+  const finishedRuns = runs.filter((r) => r.report && report && r.report.repository === report.repository)
+  const failedRuns = report ? runs.filter((r) => r.status === 'failed') : []
+  const viewReport = (reportView !== 'all' && finishedRuns.find((r) => r.path === reportView)?.report) || report
+  const showSwitcher = finishedRuns.length > 1
 
   // Filtered & paginated dependencies for the report
-  const rawDeps = report?.dependencies || []
+  const rawDeps = viewReport?.dependencies || []
   const vulnDepsCount = rawDeps.filter((d) => d.vulnerabilities.length > 0).length
   const cleanDepsCount = rawDeps.length - vulnDepsCount
 
@@ -320,167 +272,76 @@ export default function GitHubAgentPanel({
 
       <div className="gh-dashboard-grid">
         {/* Left Column: Repository Selection */}
-        <div className="gh-selection-pane">
-          <div className="pane-header">
-            <div className="pane-header-title">
-              <h3>
-                <FolderGit2 size={16} />
-                <span>Repositories ({repos.length})</span>
-              </h3>
-              <button
-                type="button"
-                className="icon-refresh-btn"
-                title="Refresh repositories list"
-                onClick={() => {
-                  setLoadingRepos(true)
-                  listGitHubRepos(token)
-                    .then(setRepos)
-                    .catch((err) => setError(err.message))
-                    .finally(() => setLoadingRepos(false))
-                }}
-                disabled={loadingRepos}
-              >
-                <RefreshCw size={13} className={loadingRepos ? 'animate-spin' : ''} />
-              </button>
-            </div>
-
-            <div className="search-wrap">
-              <Search size={14} className="search-icon" />
-              <input
-                type="text"
-                placeholder="Filter repositories..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="search-input"
-              />
-            </div>
-          </div>
-
-          <div className="repo-list">
-            {loadingRepos ? (
-              <div className="repo-loading-container">
-                <div className="repo-loading-status">
-                  <span className="live-pulse" />
-                  <span className="loading-title">Loading repositories from GitHub...</span>
-                  <RefreshCw className="animate-spin text-muted" size={13} />
-                </div>
-                <p className="loading-hint">Fetching repository manifests and branches from GitHub API</p>
-                <div className="repo-skeleton-list">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="repo-skeleton-card">
-                      <div className="skeleton-head">
-                        <div className="skeleton-line skeleton-title" />
-                        <div className="skeleton-badge" />
-                      </div>
-                      <div className="skeleton-line skeleton-desc" />
-                      <div className="skeleton-foot">
-                        <div className="skeleton-tag" />
-                        <div className="skeleton-tag" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : filteredRepos.length === 0 ? (
-              <div className="empty-state">No matching repositories found.</div>
-            ) : (
-              filteredRepos.map((repo) => {
-                const isSelected = selectedRepo?.id === repo.id
-                return (
-                  <div
-                    key={repo.id}
-                    className={`repo-card ${isSelected ? 'selected' : ''}`}
-                    onClick={() => handleSelectRepo(repo)}
-                  >
-                    <div className="repo-card-head">
-                      <span className="repo-name">{repo.full_name}</span>
-                      <span className="visibility-badge">
-                        {repo.private ? <Lock size={11} /> : <Globe size={11} />}
-                        {repo.private ? 'Private' : 'Public'}
-                      </span>
-                    </div>
-                    {repo.description && <p className="repo-desc">{repo.description}</p>}
-                    <div className="repo-card-foot">
-                      {repo.language && <span className="lang-tag">{repo.language}</span>}
-                      <span className="branch-tag">
-                        <GitBranch size={11} />
-                        {repo.default_branch}
-                      </span>
-                      {repo.stargazers_count > 0 && (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                          <Star size={10} fill="currentColor" /> {repo.stargazers_count}
-                        </span>
-                      )}
-                      {isSelected && (
-                        <span className="selected-target-pill">
-                          Target Selected <ArrowRight size={11} />
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )
-              })
-            )}
-          </div>
-        </div>
+        <RepoSidebar
+          token={token}
+          login={user.login}
+          selectedId={selectedRepo?.id ?? null}
+          onSelect={handleSelectRepo}
+          onError={setError}
+        />
 
         {/* Right Column: AI Launchpad OR Report Details */}
         <div className="gh-analysis-pane">
           {analyzing ? (
-            /* Analyzing Active State */
-            <div className="agent-loading-card">
-              <div className="pulsing-shield">
-                <ShieldCheck size={52} />
+            /* Multi-manifest progress (real, per file) */
+            <div className="agent-loading-card hbm-progress" role="status" aria-live="polite">
+              <div className="hbm-progress-icon" aria-hidden="true">
+                <ScanSearch size={34} strokeWidth={1.5} />
               </div>
-              <h3>Security Agent Auditing Repository</h3>
-              <p>
-                Extracting package pins from <code>{selectedManifest}</code> in{' '}
-                <code>{selectedRepo?.full_name}</code>, querying deterministic advisories against OSV.dev,
-                and compiling verified remediation guidance...
-              </p>
-              <div className="agent-progress-steps">
-                <div className="step-item active">
-                  <CheckCircle2 size={14} />
-                  <span>[1/3] Parsing manifest descriptors & lockfile hashes</span>
-                </div>
-                <div className="step-item active">
-                  <CheckCircle2 size={14} />
-                  <span>[2/3] Querying OSV.dev batch vulnerability feeds</span>
-                </div>
-                <div className="step-item active">
-                  <RefreshCw size={14} className="animate-spin" />
-                  <span>[3/3] Bifrost by Maxim AI generating safe fix plans</span>
-                </div>
+              <h3 className="hbd-serif">
+                Auditing {runs.filter((r) => r.status === 'done' || r.status === 'failed').length} of {runs.length} manifest
+                {runs.length === 1 ? '' : 's'}
+              </h3>
+              <p>Each file is parsed, its exact versions are checked against OSV.dev, and Bifrost explains any matches.</p>
+              <div className="hbm-bar" aria-hidden="true">
+                <span
+                  style={{
+                    width: `${Math.round(((runs.filter((r) => r.status === 'done' || r.status === 'failed').length + 0.5) / Math.max(1, runs.length)) * 100)}%`,
+                  }}
+                />
               </div>
+              <ol className="hbm-runs">
+                {runs.map((r) => (
+                  <li key={r.path} className={`is-${r.status}`}>
+                    <span className="hbm-run-icon">
+                      {r.status === 'running' ? <RefreshCw size={12} className="animate-spin" /> : r.status === 'done' ? <Check size={12} /> : r.status === 'failed' ? <X size={12} /> : null}
+                    </span>
+                    <code>{r.path}</code>
+                    <span className="hbm-run-state">
+                      {r.status === 'running' ? 'Checking…' : r.status === 'done' ? `${r.report?.vulnerability_count ?? 0} advisories` : r.status === 'failed' ? 'Failed' : 'Waiting'}
+                    </span>
+                  </li>
+                ))}
+              </ol>
             </div>
-          ) : viewMode === 'report' && report ? (
+          ) : viewMode === 'report' && viewReport ? (
             /* Full Report View */
             <div className="audit-report-card">
               {/* Report Header Bar */}
               <div className="report-header">
                 <div>
                   <span className="eyebrow">DepShield AI Security Audit</span>
-                  <h3>{report.repository}</h3>
+                  <h3>{viewReport.repository}</h3>
                   <div className="report-sub">
                     <span>
-                      <GitBranch size={12} /> {report.branch}
+                      <GitBranch size={12} /> {viewReport.branch}
                     </span>
-                    <span>• File: <code>{report.manifest_path}</code></span>
+                    <span>• File: <code>{viewReport.manifest_path}</code></span>
                     <span>
-                      • {report.ecosystem} ({report.manifest_type})
+                      • {viewReport.ecosystem} ({viewReport.manifest_type})
                     </span>
                   </div>
                 </div>
                 <div className="report-header-actions">
-                  <div className={`risk-badge risk-${report.risk_level.toLowerCase()}`}>
-                    {report.risk_level === 'CLEAN' ? (
+                  <div className={`risk-badge risk-${viewReport.risk_level.toLowerCase()}`}>
+                    {viewReport.risk_level === 'CLEAN' ? (
                       <ShieldCheck size={16} />
-                    ) : report.risk_level === 'CRITICAL' ? (
+                    ) : viewReport.risk_level === 'CRITICAL' ? (
                       <ShieldAlert size={16} />
                     ) : (
                       <AlertTriangle size={16} />
                     )}
-                    <span>{report.risk_level} RISK</span>
+                    <span>{viewReport.risk_level} RISK</span>
                   </div>
                   {selectedRepo && (
                     <button
@@ -489,29 +350,50 @@ export default function GitHubAgentPanel({
                       onClick={() => setViewMode('launchpad')}
                       title="Switch to another manifest or change audit directives"
                     >
-                      <span>Audit Another Manifest</span>
+                      <span>Change manifests</span>
                       <ArrowRight size={13} />
                     </button>
                   )}
                 </div>
               </div>
 
+              {showSwitcher && (
+                <div className="hbm-switch" role="tablist" aria-label="Report scope">
+                  <button type="button" role="tab" aria-selected={reportView === 'all'} className={reportView === 'all' ? 'active' : ''} onClick={() => { setReportView('all'); setDepPage(1) }}>
+                    All manifests <b>{report?.vulnerability_count ?? 0}</b>
+                  </button>
+                  {finishedRuns.map((r) => (
+                    <button key={r.path} type="button" role="tab" aria-selected={reportView === r.path} className={reportView === r.path ? 'active' : ''} onClick={() => { setReportView(r.path); setDepPage(1) }}>
+                      {r.path} <b>{r.report?.vulnerability_count ?? 0}</b>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {failedRuns.length > 0 && (
+                <div className="hbm-failed" role="status">
+                  <AlertTriangle size={14} />
+                  <span>
+                    Not included: {failedRuns.map((r) => r.path).join(', ')}. {failedRuns[0].error}
+                  </span>
+                </div>
+              )}
+
               {/* Summary Metric Counters */}
               <div className="metrics-grid">
                 <div className="metric-box">
-                  <span className="metric-num">{report.dependency_count}</span>
+                  <span className="metric-num">{viewReport.dependency_count}</span>
                   <span className="metric-label">Dependencies</span>
                 </div>
                 <div className="metric-box">
-                  <span className="metric-num">{report.checked_count}</span>
+                  <span className="metric-num">{viewReport.checked_count}</span>
                   <span className="metric-label">Pinned & Checked</span>
                 </div>
                 <div className="metric-box">
-                  <span className="metric-num text-alert">{report.vulnerability_count}</span>
+                  <span className="metric-num text-alert">{viewReport.vulnerability_count}</span>
                   <span className="metric-label">Active Advisories</span>
                 </div>
                 <div className="metric-box">
-                  <span className="metric-num">{report.unpinned_count}</span>
+                  <span className="metric-num">{viewReport.unpinned_count}</span>
                   <span className="metric-label">Unpinned Ranges</span>
                 </div>
               </div>
@@ -520,36 +402,52 @@ export default function GitHubAgentPanel({
               <div className="agent-summary-box">
                 <div className="agent-box-title">
                   <Sparkles size={16} />
-                  <h4>{report.summary_source === 'bifrost' ? 'Bifrost AI Analysis' : 'OSV Summary'}</h4>
-                  {report.summary_source === 'bifrost' ? (
-                    <span className="provenance-chip live" title={report.gateway_response_id ?? undefined}>
-                      <span className="live-pulse" /> Live · {report.ai_model}
-                      {report.ai_usage?.total_tokens ? ` · ${report.ai_usage.total_tokens} tok` : ''}
+                  <h4>{viewReport.summary_source === 'bifrost' ? 'Bifrost AI Analysis' : 'OSV Summary'}</h4>
+                  {viewReport.summary_source === 'bifrost' ? (
+                    <span className="provenance-chip live" title={viewReport.gateway_response_id ?? undefined}>
+                      <span className="live-pulse" /> Live · {viewReport.ai_model}
+                      {viewReport.ai_usage?.total_tokens ? ` · ${viewReport.ai_usage.total_tokens} tok` : ''}
                     </span>
                   ) : (
                     <span className="provenance-chip fallback">
-                      {report.vulnerability_count === 0
+                      {viewReport.vulnerability_count === 0
                         ? 'No AI needed: no advisories'
-                        : report.summary_fallback_reason === 'bifrost_not_configured'
+                        : viewReport.summary_fallback_reason === 'bifrost_not_configured'
                           ? 'Bifrost not configured'
                           : 'Bifrost unreachable: no AI output'}
                     </span>
                   )}
                 </div>
-                <p className="agent-narrative">{report.agent_summary}</p>
+                {reportView === 'all' && showSwitcher ? (
+                  <ul className="hbm-summaries">
+                    {finishedRuns.map((r) => (
+                      <li key={r.path}>
+                        <button type="button" className="hbm-summary-file" onClick={() => setReportView(r.path)}>
+                          <FileCode size={13} /> {r.path}
+                          <span className={`hbm-src ${r.report?.summary_source === 'bifrost' ? 'is-ai' : ''}`}>
+                            {r.report?.summary_source === 'bifrost' ? `AI · ${r.report.ai_model}` : 'OSV summary'}
+                          </span>
+                        </button>
+                        <p className="agent-narrative">{r.report?.agent_summary}</p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="agent-narrative">{viewReport.agent_summary}</p>
+                )}
 
                 {/* Structured Actionable Upgrades & Fixes */}
-                {report.recommendations.length > 0 && (
+                {viewReport.recommendations.length > 0 && (
                   <div className="recommendations-box">
                     <div className="rec-box-head">
                       <Sparkles size={14} className="text-purple" />
-                      <h5>Actionable Upgrades & Fixes ({report.recommendations.length})</h5>
+                      <h5>Actionable Upgrades & Fixes ({viewReport.recommendations.length})</h5>
                       <span className="rec-box-tag">From OSV advisories</span>
                     </div>
 
                     <div className="rec-cards-list">
-                      {report.recommendations.map((rec, i) => {
-                        const parsed = formatRecommendation(rec, report.ecosystem)
+                      {viewReport.recommendations.map((rec, i) => {
+                        const parsed = formatRecommendation(rec, viewReport.ecosystem)
                         return (
                           <div key={i} className="recommendation-card">
                             <div className="rec-card-topline">
@@ -782,159 +680,183 @@ export default function GitHubAgentPanel({
               </div>
             </div>
           ) : selectedRepo ? (
-            /* Selected Repo Launchpad (Directly in the center!) */
-            <div className="repo-launchpad-card">
-              {/* Header with repo info */}
-              <div className="launchpad-header">
-                <div className="launchpad-title-block">
-                  <div className="launchpad-eyebrow">
-                    <FolderGit2 size={13} />
-                    <span>Target Repository Selected</span>
+            /* Selected repository launchpad */
+            <div className="repo-launchpad-card hbm-launch">
+              <header className="hbm-repo">
+                <div className="hbm-repo-tile" aria-hidden="true">
+                  <span>{selectedRepo.name.charAt(0).toUpperCase()}</span>
+                </div>
+                <div className="hbm-repo-main">
+                  <span className="hb-kicker">Target repository</span>
+                  <h2 className="hbm-repo-name">
+                    <span className="hbm-repo-owner">{selectedRepo.full_name.split('/')[0]}/</span>
+                    {selectedRepo.name}
+                  </h2>
+                  {selectedRepo.description && <p className="hbm-repo-desc">{selectedRepo.description}</p>}
+                  <div className="hbm-chips">
+                    <span className="hb-chip">{selectedRepo.private ? <Lock size={11} /> : <Globe size={11} />} {selectedRepo.private ? 'Private' : 'Public'}</span>
+                    <span className="hb-chip"><GitBranch size={11} /> {selectedRepo.default_branch}</span>
+                    {selectedRepo.language && <span className="hb-chip">{selectedRepo.language}</span>}
+                    {selectedRepo.stargazers_count > 0 && <span className="hb-chip"><Star size={11} /> {selectedRepo.stargazers_count}</span>}
+                    <a className="hb-chip hbm-chip-link" href={selectedRepo.html_url} target="_blank" rel="noreferrer">
+                      Open on GitHub <ExternalLink size={11} />
+                    </a>
                   </div>
-                  <h2>{selectedRepo.full_name}</h2>
-                  {selectedRepo.description && (
-                    <p className="launchpad-desc">{selectedRepo.description}</p>
-                  )}
                 </div>
-                <div className="launchpad-badges">
-                  <span className="launchpad-badge visibility">
-                    {selectedRepo.private ? <Lock size={11} /> : <Globe size={11} />}
-                    {selectedRepo.private ? 'Private' : 'Public'}
-                  </span>
-                  <span className="launchpad-badge branch">
-                    <GitBranch size={11} />
-                    {selectedRepo.default_branch}
-                  </span>
-                  {selectedRepo.language && (
-                    <span className="launchpad-badge lang">{selectedRepo.language}</span>
-                  )}
-                  {selectedRepo.stargazers_count > 0 && (
-                    <span className="launchpad-badge stars" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                      <Star size={11} fill="currentColor" /> {selectedRepo.stargazers_count}
-                    </span>
-                  )}
-                </div>
-              </div>
+              </header>
 
-              {/* Manifest Explorer Section */}
-              <div className="launchpad-manifests-section">
-                <div className="section-head">
-                  <div className="section-head-title">
-                    <Terminal size={15} />
-                    <h4>Discovered Manifests in {selectedRepo.name}</h4>
+              <section className="hbm-section" aria-labelledby="hbm-manifests-title">
+                <div className="hbm-sec-head">
+                  <div>
+                    <h4 id="hbm-manifests-title" className="hbd-serif">Dependency files</h4>
+                    <span className="hbm-sec-sub">
+                      {loadingManifests
+                        ? 'Scanning the repository…'
+                        : manifests.length
+                          ? `${selectedManifests.length} of ${manifests.length} selected`
+                          : 'None found'}
+                    </span>
                   </div>
-                  <span className="manifest-count-tag">
-                    {loadingManifests
-                      ? 'Scanning repository...'
-                      : `${manifests.length} manifest${manifests.length === 1 ? '' : 's'} discovered`}
-                  </span>
+                  <div className="hbm-sel-actions">
+                    {manifests.length > 1 && (
+                      <>
+                        <button type="button" className="hbd-link" onClick={() => setSelectedManifests(recommendedSelection(manifests))}>Recommended</button>
+                        <button type="button" className="hbd-link" onClick={() => setSelectedManifests(manifests.map((m) => m.path))}>Select all</button>
+                        <button type="button" className="hbd-link" onClick={() => setSelectedManifests([])} disabled={!selectedManifests.length}>Clear</button>
+                      </>
+                    )}
+                    <button type="button" className="hbd-icon-btn" onClick={() => setManifestReload((n) => n + 1)} disabled={loadingManifests} aria-label="Scan the repository again" title="Scan again">
+                      <RefreshCw size={13} className={loadingManifests ? 'animate-spin' : ''} />
+                    </button>
+                  </div>
                 </div>
 
                 {loadingManifests ? (
-                  <div className="manifest-loading-box">
-                    <RefreshCw className="animate-spin" size={16} />
-                    <span>Discovering project manifests and lockfiles...</span>
+                  <div className="hbm-grid" aria-hidden="true">
+                    {[0, 1, 2].map((i) => <div key={i} className="hbm-skel" />)}
                   </div>
                 ) : manifests.length === 0 ? (
-                  <div className="manifest-empty-box">
-                    <AlertTriangle size={18} />
-                    <span>No package manifests or lockfiles detected in common directories.</span>
+                  <div className="hbm-empty">
+                    <div className="hbd-empty-art" aria-hidden="true">
+                      <span className="hbd-empty-card c1" />
+                      <span className="hbd-empty-card c2" />
+                      <span className="hbd-empty-card c3"><PackageSearch size={26} strokeWidth={1.5} /></span>
+                    </div>
+                    <h4 className="hbd-serif">No dependency files found</h4>
+                    <p>
+                      {selectedRepo.language && !SUPPORTED_LANGS.includes(selectedRepo.language.toLowerCase())
+                        ? `This looks like ${/^(html|[aeiou])/i.test(selectedRepo.language) ? 'an' : 'a'} ${selectedRepo.language} project. DepShield currently audits npm and Python dependencies, so there may be nothing to check here.`
+                        : 'DepShield couldn’t find a supported manifest in the usual places. If your project keeps it in a deeper folder, paste it into the manual scanner instead.'}
+                    </p>
+                    <div className="hbm-looked">
+                      <span>Looked in</span>
+                      {SCANNED_DIRS.map((d) => <code key={d}>{d}</code>)}
+                    </div>
+                    <div className="hbm-looked">
+                      <span>For</span>
+                      {SUPPORTED_FILES.map((f) => <code key={f}>{f}</code>)}
+                    </div>
+                    <div className="hb-hero-ctas">
+                      <button type="button" className="hb-btn hb-btn-ghost hbd-btn-sm" onClick={() => setManifestReload((n) => n + 1)}>
+                        <RefreshCw size={14} /> Scan again
+                      </button>
+                      {onManualScan && (
+                        <button type="button" className="hb-btn hb-btn-primary hbd-btn-sm" onClick={onManualScan}>
+                          <FileCode size={14} /> Paste a manifest instead
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ) : (
-                  <div className="manifest-cards-grid">
-                    {manifests.map((m) => {
-                      const isSelected = selectedManifest === m.path
-                      const isLockfile = m.manifest_type === 'lockfile'
-                      return (
-                        <button
-                          key={m.path}
-                          type="button"
-                          className={`manifest-select-card ${isSelected ? 'active' : ''}`}
-                          onClick={() => setSelectedManifest(m.path)}
-                        >
-                          <div className="manifest-card-top">
-                            <FileCode size={15} />
-                            <span className="manifest-path-text">{m.path}</span>
-                            {isSelected && <Check size={14} className="active-check" />}
-                          </div>
-                          <div className="manifest-card-sub">
-                            <span className="manifest-eco-tag">{m.ecosystem}</span>
-                            <span className={`manifest-type-tag ${isLockfile ? 'lockfile' : ''}`}>
-                              {isLockfile ? 'Lockfile (Full Pinned Tree)' : 'Manifest'}
-                            </span>
-                          </div>
-                        </button>
-                      )
-                    })}
+                  <div className="hbm-groups">
+                    {groupByDir(manifests).map(([dir, files]) => (
+                      <div className="hbm-group" key={dir || 'root'}>
+                        <span className="hbm-dir"><FolderOpen size={13} /> {dir ? `${dir}/` : 'Repository root'}</span>
+                        <div className="hbm-grid">
+                          {files.map((m) => {
+                            const checked = selectedManifests.includes(m.path)
+                            const isLock = m.manifest_type === 'lockfile'
+                            const covered = checked && coveredByLockfile(m, selectedManifests, manifests)
+                            return (
+                              <button
+                                key={m.path}
+                                type="button"
+                                role="checkbox"
+                                aria-checked={checked}
+                                className={`hbm-card ${checked ? 'is-checked' : ''}`}
+                                onClick={() => toggleManifest(m.path)}
+                              >
+                                <span className="hbm-check" aria-hidden="true">{checked && <Check size={12} strokeWidth={3} />}</span>
+                                <span className="hbm-card-body">
+                                  <span className="hbm-card-name">{m.name}</span>
+                                  <span className="hbm-card-meta">
+                                    <span>{m.ecosystem}</span>
+                                    <span>·</span>
+                                    <span>{isLock ? 'Lockfile · exact versions' : 'Manifest · may use ranges'}</span>
+                                  </span>
+                                  {covered && <span className="hbm-card-hint">Its lockfile already covers these packages</span>}
+                                </span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
-              </div>
+              </section>
 
-              {/* Directives & Action Section */}
-              <div className="launchpad-action-section">
-                <div className="directives-wrap">
-                  <label htmlFor="launchpad-prompt" className="directives-label">
-                    <Sparkles size={14} />
-                    <span>Agent Investigation Directives:</span>
-                  </label>
-                  <input
-                    id="launchpad-prompt"
-                    type="text"
-                    value={question}
-                    onChange={(e) => setQuestion(e.target.value)}
-                    placeholder="e.g. Focus on remote code execution & blast radius"
-                    className="directives-input"
-                  />
-                  <div className="preset-chips">
-                    <span className="preset-label">Suggested presets:</span>
-                    <button
-                      type="button"
-                      className="preset-btn"
-                      onClick={() =>
-                        setQuestion(
-                          'Identify all critical vulnerabilities, assess reachability, and provide safe upgrade paths.',
-                        )
-                      }
-                    >
-                      Comprehensive Audit
-                    </button>
-                    <button
-                      type="button"
-                      className="preset-btn"
-                      onClick={() =>
-                        setQuestion('Focus strictly on remote code execution, prototype pollution, and SSRF.')
-                      }
-                    >
-                      RCE & Exploitability
-                    </button>
-                    <button
-                      type="button"
-                      className="preset-btn"
-                      onClick={() =>
-                        setQuestion('Verify non-breaking semver patches for all pinned dependencies.')
-                      }
-                    >
-                      Safe Upgrade Paths
-                    </button>
+              <section className="hbm-section">
+                <div className="hbm-sec-head">
+                  <div>
+                    <label htmlFor="launchpad-prompt" className="hbd-serif hbm-label">Investigation focus</label>
+                    <span className="hbm-sec-sub">Bifrost uses this when advisories are found.</span>
                   </div>
-                  <ModelPicker value={aiModel} onChange={setAiModel} />
+                  <span className="hbm-count">{question.length}/1000</span>
                 </div>
+                <textarea
+                  id="launchpad-prompt"
+                  className="hbm-textarea"
+                  value={question}
+                  onChange={(e) => setQuestion(e.target.value.slice(0, 1000))}
+                  rows={2}
+                  placeholder="e.g. Focus on remote code execution and how far an exploit could reach"
+                />
+                <div className="hbm-presets" role="group" aria-label="Suggested focus">
+                  {PRESETS.map((p) => (
+                    <button
+                      key={p.label}
+                      type="button"
+                      className={`hbm-preset ${question === p.text ? 'active' : ''}`}
+                      aria-pressed={question === p.text}
+                      onClick={() => setQuestion(p.text)}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+                <ModelPicker value={aiModel} onChange={setAiModel} />
+              </section>
 
-                <div className="launchpad-cta-box">
-                  <button
-                    type="button"
-                    className="primary-button run-agent-btn"
-                    onClick={handleRunAgentAnalysis}
-                    disabled={analyzing || !selectedManifest}
-                  >
-                    <Sparkles size={16} />
-                    <span>Run AI Security Agent Analysis</span>
-                  </button>
-                  <span className="security-guarantee-note">
-                    <ShieldCheck size={13} />
-                    <span>Zero Source Code Ingestion • Verified against OSV.dev via Bifrost Gateway</span>
-                  </span>
-                </div>
+              <div className="hbm-cta">
+                <button
+                  type="button"
+                  className="hb-btn hb-btn-primary hbm-run"
+                  onClick={handleRunAgentAnalysis}
+                  disabled={analyzing || selectedManifests.length === 0}
+                >
+                  <ScanSearch size={17} />
+                  <span>Run AI Security Agent Analysis</span>
+                  {selectedManifests.length > 0 && (
+                    <span className="hbm-run-count">{selectedManifests.length}</span>
+                  )}
+                </button>
+                <span className="hbm-cta-note">
+                  <ShieldCheck size={13} />
+                  {selectedManifests.length === 0
+                    ? 'Select at least one dependency file to audit.'
+                    : 'Only the selected files are downloaded. Exact versions are checked against OSV.dev.'}
+                </span>
               </div>
             </div>
           ) : (

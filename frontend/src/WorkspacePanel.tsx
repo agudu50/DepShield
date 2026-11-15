@@ -1,6 +1,52 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
+import {
+  AlertTriangle,
+  ArrowRight,
+  Building2,
+  Eye,
+  EyeOff,
+  FileSearch,
+  History,
+  LoaderCircle,
+  Lock,
+  Terminal,
+} from 'lucide-react'
 import { authClient, authenticatedApiRequest } from './auth'
+
+/** Turn auth-provider errors into something a person can act on. */
+function friendlyAuthError(raw: string, isSignUp: boolean): string {
+  const m = raw.toLowerCase()
+  if (m.includes('too many') || m.includes('rate')) return 'Too many attempts. Please wait a minute and try again.'
+  if (m.includes('already') || m.includes('exists')) return 'An account with this email already exists. Sign in instead.'
+  if (m.includes('verif')) return 'Please confirm your email address using the link we sent, then sign in.'
+  if (m.includes('password') && (m.includes('short') || m.includes('least') || m.includes('length')))
+    return 'Use a password with at least 8 characters.'
+  if (m.includes('invalid') || m.includes('incorrect') || m.includes('credential') || m.includes('not found'))
+    return isSignUp
+      ? 'Those details weren’t accepted. Check your email address and try again.'
+      : 'That email and password don’t match an account. Check them and try again.'
+  if (m.includes('fetch') || m.includes('network') || m.includes('failed to'))
+    return 'We couldn’t reach the sign-in service. Check your connection and try again.'
+  return isSignUp ? 'We couldn’t create your account. Please try again.' : 'We couldn’t sign you in. Please try again.'
+}
+
+function passwordStrength(pw: string): { score: 0 | 1 | 2 | 3; label: string } {
+  if (!pw) return { score: 0, label: '' }
+  let s = 0
+  if (pw.length >= 8) s++
+  if (pw.length >= 12) s++
+  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw) && /\d|[^\w]/.test(pw)) s++
+  const score = Math.min(3, s) as 0 | 1 | 2 | 3
+  return { score, label: pw.length < 8 ? 'Too short' : ['Weak', 'Okay', 'Good', 'Strong'][score] }
+}
+
+const WORKSPACE_FEATURES = [
+  { icon: Building2, title: 'Organizations & roles', body: 'Invite teammates as admins or members, per organization.' },
+  { icon: History, title: 'Saved scans', body: 'Results are kept for 90 days. The original manifest isn’t stored.' },
+  { icon: FileSearch, title: 'Investigations', body: 'Ask about a package and keep the cited OSV evidence with the answer.' },
+  { icon: Terminal, title: 'CLI sign-in', body: 'Authorize the CLI once; its token lives in your OS keychain.' },
+]
 
 type UserSummary = { id: string; email: string; name: string }
 type Organization = { id: string; name: string; role: string }
@@ -106,6 +152,7 @@ export default function WorkspacePanel() {
   const [user, setUser] = useState<UserSummary | null>(null)
   const [loading, setLoading] = useState(Boolean(authClient))
   const [isSignUp, setIsSignUp] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -366,11 +413,13 @@ export default function WorkspacePanel() {
       if (result.error) throw new Error(result.error.message)
       await restoreSession()
       if (isSignUp) {
-        setNotice('Account created. If you do not have a session yet, verify your email and sign in.')
+        setNotice('Account created. If you aren’t signed in yet, confirm your email address and then sign in.')
       }
       setPassword('')
     } catch (authError) {
-      setError(authError instanceof Error ? authError.message : 'Authentication failed')
+      const raw = authError instanceof Error ? authError.message : ''
+      if (raw) console.warn('Workspace auth failed:', raw)
+      setError(friendlyAuthError(raw, isSignUp))
     } finally {
       setBusy(false)
     }
@@ -645,13 +694,137 @@ export default function WorkspacePanel() {
 
   if (!authClient) {
     return (
-      <section className="panel workspace-panel" aria-labelledby="workspace-title">
-        <div className="panel-header">
-          <div>
-            <h3 id="workspace-title">Sign-in and investigation workspace</h3>
-            <p className="scan-help">Set VITE_NEON_AUTH_URL to the Managed Auth base URL to enable this feature.</p>
+      <section className="hbd-panel hbd-empty" aria-labelledby="workspace-title">
+        <div className="hbd-empty-art" aria-hidden="true">
+          <span className="hbd-empty-card c1" />
+          <span className="hbd-empty-card c2" />
+          <span className="hbd-empty-card c3"><Lock size={26} strokeWidth={1.5} /></span>
+        </div>
+        <h3 id="workspace-title" className="hbd-serif">Team workspaces aren’t switched on</h3>
+        <p>
+          This DepShield install doesn’t have accounts set up yet. Ask whoever runs it to connect Neon Auth
+          (the <code>VITE_NEON_AUTH_URL</code> setting) to enable sign-in.
+        </p>
+      </section>
+    )
+  }
+
+  if (loading) {
+    return (
+      <section className="hbw-auth" aria-busy="true">
+        <div className="hbw-skeleton" role="status">
+          <LoaderCircle size={18} className="spin" /> Restoring your session…
+        </div>
+      </section>
+    )
+  }
+
+  if (!user) {
+    const strength = passwordStrength(password)
+    return (
+      <section className="hbw-auth" aria-labelledby="workspace-title">
+        <div className="hbw-pitch">
+          <span className="hb-kicker">Accounts</span>
+          <h3 id="workspace-title" className="hbw-title">
+            Bring your team
+            <br />
+            <em>into the audit.</em>
+          </h3>
+          <p className="hbw-lede">
+            Sign in to share projects, keep scan history and save investigations. Your data is stored in
+            PostgreSQL and protected by your account session.
+          </p>
+          <ul className="hbw-features">
+            {WORKSPACE_FEATURES.map(({ icon: Icon, title, body }, i) => (
+              <li key={title} style={{ '--i': i } as React.CSSProperties}>
+                <span className="hbw-feature-icon"><Icon size={16} /></span>
+                <div>
+                  <strong>{title}</strong>
+                  <p>{body}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className="hbw-stack" aria-hidden="true">
+            <div className="hbw-sheet s3"><span className="hbw-line w60" /><span className="hbw-line w40" /></div>
+            <div className="hbw-sheet s2"><span className="hbw-line w70" /><span className="hbw-line w50" /><span className="hbw-line w30" /></div>
+            <div className="hbw-sheet s1">
+              <span className="hbw-sheet-kicker">Saved scan</span>
+              <strong>payments-api · package-lock.json</strong>
+              <span className="hbw-sheet-row"><i /> 214 packages checked</span>
+              <span className="hbw-sheet-row"><i className="solid" /> 2 advisories</span>
+            </div>
           </div>
-          <span className="panel-tag">Not configured</span>
+        </div>
+
+        <div className="hbw-card">
+          {cliCallback && (
+            <div className="hbw-cli" role="group" aria-labelledby="cli-auth-title">
+              <Terminal size={16} />
+              <div>
+                <strong id="cli-auth-title">The DepShield CLI is asking to sign in</strong>
+                <p>Sign in below, then approve it. The token goes only to your local CLI and its OS keychain.</p>
+                {!validCliCallback && <p className="hbw-error" role="alert"><AlertTriangle size={13} /> This sign-in link isn’t valid. Run <code>depshield login</code> again.</p>}
+              </div>
+            </div>
+          )}
+
+          <div className="hbw-tabs" role="tablist" aria-label="Account">
+            <span className="hbw-tab-indicator" style={{ transform: `translateX(${isSignUp ? 100 : 0}%)` }} aria-hidden="true" />
+            <button type="button" role="tab" aria-selected={!isSignUp} className={!isSignUp ? 'active' : ''} onClick={() => { setIsSignUp(false); setError('') }}>
+              Sign in
+            </button>
+            <button type="button" role="tab" aria-selected={isSignUp} className={isSignUp ? 'active' : ''} onClick={() => { setIsSignUp(true); setError('') }}>
+              Create account
+            </button>
+          </div>
+
+          <form className="hbw-form" onSubmit={(event) => void submitAuth(event)} key={isSignUp ? 'up' : 'in'}>
+            <h4 className="hbw-form-title">{isSignUp ? 'Create your account' : 'Welcome back'}</h4>
+            {isSignUp && (
+              <label className="hbw-field">
+                <span>Name</span>
+                <input value={name} onChange={(event) => setName(event.target.value)} maxLength={100} autoComplete="name" placeholder="Ada Lovelace" required />
+              </label>
+            )}
+            <label className="hbw-field">
+              <span>Email</span>
+              <input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@company.com" required />
+            </label>
+            <label className="hbw-field">
+              <span>Password</span>
+              <span className="hbw-input-wrap">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete={isSignUp ? 'new-password' : 'current-password'}
+                  minLength={8}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder={isSignUp ? 'At least 8 characters' : ''}
+                  required
+                />
+                <button type="button" className="hbw-eye" onClick={() => setShowPassword((s) => !s)} aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </span>
+            </label>
+            {isSignUp && password && (
+              <div className={`hbw-strength s${strength.score}`} aria-live="polite">
+                <span className="hbw-strength-bars"><i /><i /><i /></span>
+                <span>{strength.label}</span>
+              </div>
+            )}
+            {error && <p className="hbw-error" role="alert"><AlertTriangle size={14} /> {error}</p>}
+            {notice && <p className="hbw-notice" role="status">{notice}</p>}
+            <button type="submit" className="hb-btn hb-btn-primary hbw-submit" disabled={busy}>
+              {busy ? (
+                <><LoaderCircle size={16} className="spin" /> {isSignUp ? 'Creating account…' : 'Signing in…'}</>
+              ) : (
+                <>{isSignUp ? 'Create account' : 'Sign in'} <ArrowRight size={15} className="hb-btn-arrow" /></>
+              )}
+            </button>
+          </form>
+          <p className="hbw-foot"><Lock size={12} /> Separate from your GitHub token. Workspace accounts use Neon Auth.</p>
         </div>
       </section>
     )

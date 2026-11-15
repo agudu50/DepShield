@@ -13,7 +13,7 @@ import {
   Moon,
   Shield,
   ShieldAlert,
-  Sparkles,
+  ShieldCheck,
   Sun,
   Users,
 } from 'lucide-react'
@@ -42,6 +42,8 @@ import './App.css'
 import './landing-seesaw.css'
 import './landing-3d.css'
 import './dashboard.css'
+import './stream-workspace.css'
+import './agent-launch.css'
 
 const STORAGE_KEY = 'depshield_github_pat'
 
@@ -68,7 +70,7 @@ const TAB_IDS: DashboardTab[] = ['agent', 'findings', 'telemetry', 'scanner', 'w
 const TAB_META: Record<DashboardTab, { title: string; em: string; sub: string }> = {
   agent: { title: 'Audit a', em: 'repository.', sub: 'Pick a repository and DepShield checks every pinned dependency against OSV.dev.' },
   findings: { title: 'Your', em: 'findings.', sub: 'Every advisory matched to an exact version in your latest audit or scan.' },
-  telemetry: { title: 'Live audit', em: 'stream.', sub: 'Each file the agent and CLI read and each query they send, as it happens.' },
+  telemetry: { title: 'Live audit', em: 'stream.', sub: 'Every file your audits read and every lookup they send from this browser, newest first.' },
   scanner: { title: 'Manual', em: 'scan.', sub: 'Paste a manifest or lockfile to check it without connecting a repository. Nothing is stored.' },
   workspace: { title: 'Team', em: 'workspace.', sub: 'Organizations, projects, members and saved scans.' },
   reports: { title: 'Security', em: 'report.', sub: 'A shareable summary of your latest audit. Print it or export it as JSON.' },
@@ -300,7 +302,7 @@ export default function App() {
   const packagesAffected = new Set(allFindings.map((f) => f.packageName)).size
 
   const tabs: DashTab<DashboardTab>[] = [
-    { id: 'agent', label: 'Audit', icon: <Sparkles size={14} /> },
+    { id: 'agent', label: 'Audit', icon: <ShieldCheck size={14} /> },
     {
       id: 'findings',
       label: 'Findings',
@@ -413,7 +415,7 @@ export default function App() {
           <p className="hbd-page-sub">{meta.sub}</p>
         </header>
 
-        {activeTab !== 'workspace' && (
+        {activeTab !== 'workspace' && activeTab !== 'telemetry' && (
           <StatCards
             stats={[
               { label: 'Public repositories', value: user ? user.public_repos : null, note: user ? `@${user.login}` : 'GitHub not connected' },
@@ -431,7 +433,13 @@ export default function App() {
         <div className="tab-pane hbd-pane" key={`pane-${activeTab}`}>
           {activeTab === 'agent' &&
             (user ? (
-              <GitHubAgentPanel token={token} user={user} report={agentReport} setReport={setAgentReport} />
+              <GitHubAgentPanel
+                token={token}
+                user={user}
+                report={agentReport}
+                setReport={setAgentReport}
+                onManualScan={() => setActiveTab('scanner')}
+              />
             ) : (
               <section className="hbd-panel hbd-empty">
                 <h3 className="hbd-serif">Connect GitHub to audit repositories</h3>
@@ -457,7 +465,7 @@ export default function App() {
             />
           )}
 
-          {activeTab === 'telemetry' && <LiveAuditMonitor />}
+          {activeTab === 'telemetry' && <LiveAuditMonitor notify={notify} />}
 
           {activeTab === 'scanner' && (
             <section className="panel scan-panel hbd-panel">

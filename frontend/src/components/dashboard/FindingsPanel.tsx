@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { AlertTriangle, Check, Copy, Download, ExternalLink, FileJson, Search, ShieldCheck, Sparkles } from 'lucide-react'
+import { AlertTriangle, Check, Copy, Download, ExternalLink, FileJson, Search, ShieldCheck } from 'lucide-react'
 import { exportFindingsCsv, exportJson, type Finding } from './exporters'
 
 interface FindingsPanelProps {
@@ -59,7 +59,7 @@ export default function FindingsPanel({ findings, hasResults, sourceLabel, onAud
             : 'Audit one of your repositories or paste a manifest into the manual scanner, and any matching advisories will show up here.'}
         </p>
         <button type="button" className="hb-btn hb-btn-primary" onClick={onAudit}>
-          <Sparkles size={15} /> Audit a repository
+          <ShieldCheck size={15} /> Audit a repository
         </button>
       </section>
     )
