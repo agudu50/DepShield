@@ -223,23 +223,46 @@ export async function scanManifest(input: {
       throw new Error(message)
     }
     if (!isScanResponse(payload)) {
-      throw new Error('The scan service returned an invalid response')
+      throw new UserFacingError(MESSAGES.badResponse, 'service')
     }
     return payload
   } catch (error) {
-    if (error instanceof TypeError && error.message.toLowerCase().includes('fetch')) {
-      throw new Error(
-        `Cannot reach the backend API at ${apiBase}. Ensure the backend is running with 'cd backend; py -3.12 -m uvicorn app.main:app --reload'`,
-      )
+    if (error instanceof TypeError) {
+      console.warn(`Scan request to ${apiBase} failed`, error)
+      throw new UserFacingError(MESSAGES.serviceDown, 'network')
     }
     throw error
   }
 }
 
+/** An error whose message is written for end users (no URLs, ports or shell commands). */
+export class UserFacingError extends Error {
+  readonly kind: 'auth' | 'network' | 'service' | 'input'
+
+  constructor(message: string, kind: 'auth' | 'network' | 'service' | 'input') {
+    super(message)
+    this.name = 'UserFacingError'
+    this.kind = kind
+  }
+}
+
+const MESSAGES = {
+  emptyToken: 'Paste your GitHub token to continue.',
+  badToken:
+    'GitHub didn’t accept that token. It may have expired, been revoked, or been copied incompletely. Create a new token and try again.',
+  rateLimited: 'GitHub is receiving too many requests from you right now. Please wait a few minutes and try again.',
+  githubDown: 'GitHub couldn’t verify your token right now. Please try again in a few minutes.',
+  offline: 'We couldn’t reach GitHub. Check that you’re connected to the internet, then try again.',
+  serviceDown:
+    'DepShield’s scanning service isn’t responding. Please try again in a moment. If you run DepShield yourself, make sure its backend is started.',
+  badResponse: 'Something went wrong while reading the results. Please try again.',
+  reposFailed: 'We couldn’t load your repositories from GitHub. Please try again.',
+}
+
 export async function getGitHubUser(rawToken: string): Promise<GitHubUserProfile> {
   const token = cleanToken(rawToken)
   if (!token) {
-    throw new Error('GitHub token cannot be empty.')
+    throw new UserFacingError(MESSAGES.emptyToken, 'input')
   }
 
   const apiBase = getApiBase()
@@ -256,19 +279,13 @@ export async function getGitHubUser(rawToken: string): Promise<GitHubUserProfile
       return payload as GitHubUserProfile
     }
     if (response.status === 401) {
-      throw new Error('Invalid or expired GitHub token. Please verify your token on GitHub.')
+      throw new UserFacingError(MESSAGES.badToken, 'auth')
     }
-    // Only throw explicit client errors (< 500). If backend gives 502/503/504 (upstream DNS/network issue),
-    // smoothly fall through to direct browser fetch below.
-    if (response.status < 500) {
-      const payload: unknown = await response.json().catch(() => null)
-      if (payload && typeof payload === 'object' && 'detail' in payload && typeof payload.detail === 'string') {
-        throw new Error(payload.detail)
-      }
-    }
+    // Any other backend failure (offline, 4xx detail, 5xx upstream issue) falls through to
+    // asking GitHub directly from the browser below.
   } catch (err) {
-    // If backend replied with explicit token error, throw it; otherwise let browser fallback handle it
-    if (err instanceof Error && err.message.toLowerCase().includes('invalid or expired')) {
+    // A definite "bad token" answer is final; anything else gets a second chance below.
+    if (err instanceof UserFacingError && err.kind === 'auth') {
       throw err
     }
   }
@@ -282,14 +299,14 @@ export async function getGitHubUser(rawToken: string): Promise<GitHubUserProfile
       },
     })
     if (ghRes.status === 401) {
-      throw new Error(
-        'Invalid or expired GitHub token. Please ensure your Personal Access Token has the "repo" or "public_repo" scope.',
-      )
+      throw new UserFacingError(MESSAGES.badToken, 'auth')
     }
     if (!ghRes.ok) {
       const errData = await ghRes.json().catch(() => ({}))
-      const msg = errData?.message || ghRes.statusText
-      throw new Error(`GitHub authentication failed: ${msg}`)
+      const rateLimited =
+        ghRes.status === 429 ||
+        (ghRes.status === 403 && String(errData?.message ?? '').toLowerCase().includes('rate limit'))
+      throw new UserFacingError(rateLimited ? MESSAGES.rateLimited : MESSAGES.githubDown, 'service')
     }
     const data = await ghRes.json()
     return {
@@ -301,12 +318,10 @@ export async function getGitHubUser(rawToken: string): Promise<GitHubUserProfile
       total_private_repos: data.total_private_repos ?? null,
     }
   } catch (ghErr) {
-    if (ghErr instanceof Error && !ghErr.message.toLowerCase().includes('fetch')) {
-      throw ghErr
-    }
-    throw new Error(
-      `Cannot connect to GitHub API or local backend (${apiBase}). Please check your internet connection or start the backend.`,
-    )
+    if (ghErr instanceof UserFacingError) throw ghErr
+    // A TypeError from fetch means the request never reached GitHub (offline, DNS, firewall).
+    console.warn('GitHub sign-in request failed', ghErr, { backend: apiBase })
+    throw new UserFacingError(MESSAGES.offline, 'network')
   }
 }
 
@@ -345,7 +360,7 @@ export async function listGitHubRepos(rawToken: string, page = 1, perPage = 50):
       },
     })
     if (!res.ok) {
-      throw new Error('Failed to retrieve GitHub repositories.')
+      throw new UserFacingError(MESSAGES.reposFailed, 'service')
     }
     const data = await res.json()
     if (!Array.isArray(data)) return []
@@ -362,7 +377,8 @@ export async function listGitHubRepos(rawToken: string, page = 1, perPage = 50):
       updated_at: item.updated_at || '',
     }))
   } catch (err) {
-    throw new Error(err instanceof Error ? err.message : 'Failed to list GitHub repositories')
+    if (err instanceof UserFacingError) throw err
+    throw new UserFacingError(MESSAGES.reposFailed, 'network')
   }
 }
 
@@ -468,10 +484,9 @@ export async function analyzeGitHubRepo(
     }
     return payload as GitHubAnalysisReport
   } catch (error) {
-    if (error instanceof TypeError && error.message.toLowerCase().includes('fetch')) {
-      throw new Error(
-        `Cannot connect to DepShield backend at ${apiBase}. To run the AI Security Agent, start the backend with: 'cd backend; py -3.12 -m uvicorn app.main:app --reload'`,
-      )
+    if (error instanceof TypeError) {
+      console.warn(`Analysis request to ${apiBase} failed`, error)
+      throw new UserFacingError(MESSAGES.serviceDown, 'network')
     }
     throw error
   }

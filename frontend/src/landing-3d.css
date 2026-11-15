@@ -5,7 +5,8 @@
    `.sw-root.hb-root` prefixes beat App.css (which loads later).
    ────────────────────────────────────────────────────────────── */
 
-.sw-root.hb-root {
+.sw-root.hb-root,
+.app-shell.hb-dash {
   --ss-bg: #0a0a0a;
   --ss-surface: #111111;
   --ss-surface-2: #181818;
@@ -25,7 +26,8 @@
   color: var(--ss-text);
   font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
-[data-theme='light'] .sw-root.hb-root {
+[data-theme='light'] .sw-root.hb-root,
+[data-theme='light'] .app-shell.hb-dash {
   --ss-bg: #f6f5f1;
   --ss-surface: #ffffff;
   --ss-surface-2: #efede8;
@@ -333,6 +335,64 @@
 .ss-marquee-dot { width: 4px; height: 4px; border-radius: 50%; }
 @keyframes ss-marquee { to { transform: translateX(-50%); } }
 .hb-marquee { margin-top: 32px; }
+
+/* Crossing ribbons: outline row (sources) + inverted row (guarantees) */
+.hb-strip {
+  position: relative;
+  margin-top: 40px;
+  padding: 36px 0;
+  overflow: clip;
+  perspective: 1200px;
+}
+.hb-strip-stage {
+  display: grid;
+  transform: rotateX(14deg);
+  transform-style: preserve-3d;
+}
+.hb-strip-row {
+  overflow: hidden;
+  margin: 0 -6%;
+}
+.hb-strip-outline {
+  padding: 14px 0;
+  border-top: 1px solid var(--ss-border);
+  border-bottom: 1px solid var(--ss-border);
+  background: var(--ss-bg);
+  transform: rotate(-1.6deg) translateZ(10px);
+}
+.hb-strip-solid {
+  margin-top: 6px;
+  padding: 15px 0;
+  background: var(--hb-ink);
+  color: var(--hb-paper);
+  transform: rotate(1.4deg) translateZ(-10px);
+  box-shadow: 0 30px 50px -30px var(--hb-shadow);
+}
+.hb-strip-track { display: flex; width: max-content; animation: ss-marquee 55s linear infinite; }
+.hb-strip-track.is-reverse { animation-direction: reverse; animation-duration: 62s; }
+.hb-strip-row:hover .hb-strip-track { animation-play-state: paused; }
+.hb-strip-group { display: flex; flex-shrink: 0; }
+.hb-strip-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 4px 0 24px;
+  font-family: var(--hb-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--ss-muted);
+  transition: color 0.2s ease;
+}
+.hb-strip-outline .hb-strip-item:hover { color: var(--ss-text); }
+.hb-strip-solid .hb-strip-item { color: var(--hb-paper); }
+.hb-strip-sep { margin-left: 20px; font-size: 0.6rem; opacity: 0.45; }
+
+@media (max-width: 640px) {
+  .hb-strip { padding: 24px 0; }
+  .hb-strip-item { font-size: 0.72rem; padding-left: 18px; }
+}
 
 /* ── Product story ───────────────────────────────────────────── */
 .hb-section { padding-top: clamp(96px, 12vw, 150px); padding-bottom: clamp(96px, 12vw, 150px); }
@@ -859,7 +919,7 @@
 
 /* ── Reduced motion: keep the look, drop the movement ───────── */
 @media (prefers-reduced-motion: reduce) {
-  .ss-intro, .hb-hero-grid, .hb-eyebrow-dot, .hb-float, .ss-marquee-track,
+  .ss-intro, .hb-hero-grid, .hb-eyebrow-dot, .hb-float, .ss-marquee-track, .hb-strip-track,
   .ss-modal, .ss-modal-backdrop, .ss-modal-icon, .ss-modal-field.has-error {
     animation: none !important;
   }

@@ -1,20 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import {
   Activity,
   AlertTriangle,
-  ArrowRight,
   BarChart3,
-  CheckCircle2,
-  ExternalLink,
+  Download,
   FileCode,
+  FileJson,
   Github,
   LoaderCircle,
   LogOut,
   Moon,
   Shield,
   ShieldAlert,
-  ShieldCheck,
   Sparkles,
   Sun,
   Users,
@@ -22,6 +20,7 @@ import {
 import {
   getGitHubUser,
   scanManifest,
+  UserFacingError,
   type Ecosystem,
   type GitHubAnalysisReport,
   type GitHubUserProfile,
@@ -30,9 +29,19 @@ import {
 import GitHubAgentPanel from './components/GitHubAgentPanel'
 import GitHubLoginGate from './components/GitHubLoginGate'
 import LiveAuditMonitor from './components/LiveAuditMonitor'
+import CommandPalette, { type PaletteItem } from './components/CommandPalette'
+import LoadingScreen from './components/dashboard/LoadingScreen'
+import DashboardTopbar, { type DashTab } from './components/dashboard/DashboardTopbar'
+import StatCards from './components/dashboard/StatCards'
+import FindingsPanel from './components/dashboard/FindingsPanel'
+import ReportsPanel from './components/dashboard/ReportsPanel'
+import { exportFindingsCsv, exportJson, type Finding } from './components/dashboard/exporters'
 import WorkspacePanel from './WorkspacePanel'
 import { addTelemetryBatch } from './telemetry'
 import './App.css'
+import './landing-seesaw.css'
+import './landing-3d.css'
+import './dashboard.css'
 
 const STORAGE_KEY = 'depshield_github_pat'
 
@@ -54,12 +63,31 @@ const npmLockExample = JSON.stringify(
 const pythonLockExample = '[[package]]\nname = "requests"\nversion = "2.31.0"\n\n[[package]]\nname = "jinja2"\nversion = "2.11.3"'
 
 type DashboardTab = 'agent' | 'findings' | 'telemetry' | 'scanner' | 'workspace' | 'reports'
+const TAB_IDS: DashboardTab[] = ['agent', 'findings', 'telemetry', 'scanner', 'workspace', 'reports']
+
+const TAB_META: Record<DashboardTab, { title: string; em: string; sub: string }> = {
+  agent: { title: 'Audit a', em: 'repository.', sub: 'Pick a repository and DepShield checks every pinned dependency against OSV.dev.' },
+  findings: { title: 'Your', em: 'findings.', sub: 'Every advisory matched to an exact version in your latest audit or scan.' },
+  telemetry: { title: 'Live audit', em: 'stream.', sub: 'Each file the agent and CLI read and each query they send, as it happens.' },
+  scanner: { title: 'Manual', em: 'scan.', sub: 'Paste a manifest or lockfile to check it without connecting a repository. Nothing is stored.' },
+  workspace: { title: 'Team', em: 'workspace.', sub: 'Organizations, projects, members and saved scans.' },
+  reports: { title: 'Security', em: 'report.', sub: 'A shareable summary of your latest audit. Print it or export it as JSON.' },
+}
+
+function readHashTab(): DashboardTab {
+  const h = window.location.hash.slice(1) as DashboardTab
+  return TAB_IDS.includes(h) ? h : 'agent'
+}
 
 export default function App() {
   const [token, setToken] = useState<string>(() => localStorage.getItem(STORAGE_KEY) || '')
   const [user, setUser] = useState<GitHubUserProfile | null>(null)
   const [loadingUser, setLoadingUser] = useState(Boolean(token))
+  const [bootError, setBootError] = useState<string | null>(null)
+  const [bootAttempt, setBootAttempt] = useState(0)
+  const [sessionNotice, setSessionNotice] = useState<string | null>(null)
   const [showWorkspaceOnly, setShowWorkspaceOnly] = useState(false)
+  const verifiedToken = useRef<string | null>(null)
 
   // Light / Dark Theme State
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -72,10 +100,28 @@ export default function App() {
     localStorage.setItem('depshield_theme', theme)
   }, [theme])
 
-  const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
+  const toggleTheme = useCallback(() => setTheme((t) => (t === 'dark' ? 'light' : 'dark')), [])
 
-  // Navigation tab state
-  const [activeTab, setActiveTab] = useState<DashboardTab>('agent')
+  // Tabs live in the URL hash, so reload, deep links and Back/Forward all work.
+  const [activeTab, setActiveTabState] = useState<DashboardTab>(readHashTab)
+  useEffect(() => {
+    const onHash = () => setActiveTabState(readHashTab())
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [])
+  const setActiveTab = useCallback((tab: DashboardTab) => {
+    if (window.location.hash !== `#${tab}`) window.location.hash = tab
+    setActiveTabState(tab)
+  }, [])
+
+  const [paletteOpen, setPaletteOpen] = useState(false)
+  const [toast, setToast] = useState<{ id: number; message: string } | null>(null)
+  const notify = useCallback((message: string) => setToast({ id: Date.now(), message }), [])
+  useEffect(() => {
+    if (!toast) return
+    const t = window.setTimeout(() => setToast(null), 2600)
+    return () => window.clearTimeout(t)
+  }, [toast])
 
   // Agent Report state
   const [agentReport, setAgentReport] = useState<GitHubAnalysisReport | null>(null)
@@ -89,52 +135,69 @@ export default function App() {
   const [scanError, setScanError] = useState('')
   const [isScanning, setIsScanning] = useState(false)
 
-  // Verify stored token on initial load
+  // Verify a stored token on load. Only a rejected token signs you out; being
+  // offline keeps the token and offers a retry instead.
   useEffect(() => {
     if (!token) {
       setUser(null)
       setLoadingUser(false)
       return
     }
+    if (verifiedToken.current === token) {
+      setLoadingUser(false)
+      return
+    }
 
     let active = true
     setLoadingUser(true)
+    setBootError(null)
 
     getGitHubUser(token)
       .then((profile) => {
         if (!active) return
+        verifiedToken.current = token
         setUser(profile)
+        setLoadingUser(false)
       })
-      .catch(() => {
+      .catch((err) => {
         if (!active) return
+        const retryable = err instanceof UserFacingError && (err.kind === 'network' || err.kind === 'service')
+        if (retryable) {
+          setBootError(err.message)
+          return
+        }
         localStorage.removeItem(STORAGE_KEY)
         setToken('')
         setUser(null)
-      })
-      .finally(() => {
-        if (active) setLoadingUser(false)
+        setLoadingUser(false)
+        setSessionNotice('Your saved GitHub session is no longer valid. Connect a token to continue.')
       })
 
     return () => {
       active = false
     }
-  }, [token])
+  }, [token, bootAttempt])
 
   function handleLoginSuccess(newToken: string, newUser: GitHubUserProfile) {
+    verifiedToken.current = newToken
     localStorage.setItem(STORAGE_KEY, newToken)
     setToken(newToken)
     setUser(newUser)
+    setSessionNotice(null)
     setShowWorkspaceOnly(false)
     setActiveTab('agent')
   }
 
-  function handleLogout() {
+  const handleLogout = useCallback(() => {
+    verifiedToken.current = null
     localStorage.removeItem(STORAGE_KEY)
     setToken('')
     setUser(null)
     setAgentReport(null)
+    setBootError(null)
+    setLoadingUser(false)
     setShowWorkspaceOnly(false)
-  }
+  }, [])
 
   async function submitScan(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -149,6 +212,11 @@ export default function App() {
       })
       setScan(result)
       setActiveTab('findings')
+      notify(
+        result.vulnerability_count
+          ? `Scan complete: ${result.vulnerability_count} advisor${result.vulnerability_count === 1 ? 'y' : 'ies'} found`
+          : 'Scan complete: no known advisories',
+      )
 
       // Record real scan telemetry
       addTelemetryBatch([
@@ -172,23 +240,9 @@ export default function App() {
           bytesSent: result.dependency_count * 28,
           sourceCodeRead: 0,
         },
-        {
-          source: 'gateway',
-          category: 'privacy_guard',
-          action: 'EXFILTRATION_PROOF',
-          target: 'Memory Boundary',
-          details: `Direct scan completed with verified zero code retention. Outbound telemetry restricted strictly to OSV query tuples.`,
-          verdict: 'safe',
-          bytesSent: 0,
-          sourceCodeRead: 0,
-        },
       ])
     } catch (error) {
-      setScanError(
-        error instanceof Error
-          ? error.message
-          : 'The scan could not be completed. Ensure the DepShield backend is running at http://localhost:8000.',
-      )
+      setScanError(error instanceof Error ? error.message : 'The scan couldn’t be completed. Please try again.')
     } finally {
       setIsScanning(false)
     }
@@ -225,51 +279,97 @@ export default function App() {
   const checkedDeps = agentReport?.checked_count ?? scan?.checked_count ?? 0
   const matchedVulns = agentReport?.vulnerability_count ?? scan?.vulnerability_count ?? 0
   const unpinnedCount = agentReport?.unpinned_count ?? scan?.unpinned_count ?? 0
+  const hasResults = Boolean(agentReport || scan)
+  const sourceName = agentReport?.repository ?? (scan ? scan.project_name : null)
+  const exportLabel = (sourceName ?? 'scan').replace(/[^\w.-]+/g, '-')
 
-  // Combine findings from Agent or Manual Scan
-  const agentFindings =
-    agentReport?.dependencies.flatMap((dep) =>
+  const allFindings: Finding[] = useMemo(() => {
+    const deps = agentReport?.dependencies ?? scan?.dependencies ?? []
+    return deps.flatMap((dep) =>
       dep.vulnerabilities.map((v) => ({
+        key: `${dep.name}-${dep.version}-${v.id}`,
         packageName: dep.name,
         version: dep.version,
-        key: `${dep.name}-${dep.version}-${v.id}`,
         id: v.id,
-        severity: 'Advisory',
         aliases: v.aliases,
         summary: v.summary,
         status: dep.status,
       })),
-    ) ?? []
+    )
+  }, [agentReport, scan])
+  const packagesAffected = new Set(allFindings.map((f) => f.packageName)).size
 
-  const manualFindings =
-    scan?.dependencies.flatMap((dep) =>
-      dep.vulnerabilities.map((v) => ({
-        packageName: dep.name,
-        version: dep.version,
-        key: `${dep.name}-${dep.version}-${v.id}`,
-        id: v.id,
-        severity: 'Advisory',
-        aliases: v.aliases,
-        summary: v.summary,
-        status: dep.status,
-      })),
-    ) ?? []
+  const tabs: DashTab<DashboardTab>[] = [
+    { id: 'agent', label: 'Audit', icon: <Sparkles size={14} /> },
+    {
+      id: 'findings',
+      label: 'Findings',
+      icon: <ShieldAlert size={14} />,
+      badge: matchedVulns > 0 ? { text: String(matchedVulns), tone: 'alert' } : undefined,
+    },
+    { id: 'telemetry', label: 'Live stream', icon: <Activity size={14} />, badge: { text: 'Live', tone: 'live' } },
+    { id: 'scanner', label: 'Manual scan', icon: <FileCode size={14} /> },
+    { id: 'workspace', label: 'Workspace', icon: <Users size={14} /> },
+    { id: 'reports', label: 'Report', icon: <BarChart3 size={14} /> },
+  ]
 
-  const allFindings = agentFindings.length > 0 ? agentFindings : manualFindings
+  const inDashboard = !loadingUser && !bootError && (Boolean(user) || showWorkspaceOnly)
 
-  // If loading stored session
-  if (loadingUser) {
+  // Keyboard: ⌘/Ctrl+K opens commands; 1–6 switch tabs when you aren't typing.
+  useEffect(() => {
+    if (!inDashboard) return
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setPaletteOpen((o) => !o)
+        return
+      }
+      const el = e.target as HTMLElement
+      const typing = el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)
+      if (typing || e.metaKey || e.ctrlKey || e.altKey || paletteOpen) return
+      const n = Number(e.key)
+      if (n >= 1 && n <= TAB_IDS.length) setActiveTab(TAB_IDS[n - 1])
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [inDashboard, paletteOpen, setActiveTab])
+
+  const paletteItems: PaletteItem[] = [
+    ...tabs.map((t, i) => ({
+      id: `tab-${t.id}`,
+      group: 'Go to',
+      label: t.label,
+      hint: String(i + 1),
+      icon: t.icon,
+      run: () => setActiveTab(t.id),
+    })),
+    ...(allFindings.length
+      ? [
+          { id: 'csv', group: 'Export', label: 'Download findings as CSV', icon: <Download size={14} />, run: () => { exportFindingsCsv(allFindings, exportLabel); notify('Downloaded CSV') } },
+          { id: 'json', group: 'Export', label: 'Download findings as JSON', icon: <FileJson size={14} />, run: () => { exportJson(allFindings, `${exportLabel}-findings`); notify('Downloaded JSON') } },
+        ]
+      : []),
+    { id: 'theme', group: 'Preferences', label: `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`, icon: theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />, run: toggleTheme },
+    ...(user
+      ? [
+          { id: 'profile', group: 'Account', label: 'Open GitHub profile', icon: <Github size={14} />, run: () => window.open(user.html_url, '_blank', 'noopener') },
+          { id: 'logout', group: 'Account', label: 'Sign out', icon: <LogOut size={14} />, run: handleLogout },
+        ]
+      : []),
+  ]
+
+  // Saved session being verified (or verification failed for a retryable reason)
+  if (loadingUser || bootError) {
     return (
-      <div className="app-shell loading-shell">
-        <div className="loading-box">
-          <LoaderCircle size={36} className="spin text-cyan" />
-          <p>Connecting to DepShield Security Engine...</p>
-        </div>
-      </div>
+      <LoadingScreen
+        error={bootError}
+        onRetry={() => setBootAttempt((n) => n + 1)}
+        onCancel={handleLogout}
+      />
     )
   }
 
-  // Screen 1: NOT LOGGED IN -> Show Clean Login Gate
+  // Screen 1: NOT LOGGED IN -> landing page
   if (!user && !showWorkspaceOnly) {
     return (
       <GitHubLoginGate
@@ -277,298 +377,94 @@ export default function App() {
         onSkipToWorkspace={() => setShowWorkspaceOnly(true)}
         theme={theme}
         onToggleTheme={toggleTheme}
+        initialError={sessionNotice}
       />
     )
   }
 
-  // Screen 2: LOGGED IN -> Show the Complete, Well-Structured Dashboard
+  const meta = TAB_META[activeTab]
+
+  // Screen 2: dashboard
   return (
-    <div className="app-shell">
-      {/* Topbar Header */}
-      <header className="db-topbar">
-        <div className="db-topbar-upper">
-          <div className="db-brand">
-            <img
-              src={theme === 'light' ? '/depshield-logo-light.png' : '/depshield-logo-dark.png'}
-              alt="DepShield Logo"
-              className="db-brand-logo-img"
-            />
-            <div className="db-brand-text">
-              <span className="db-brand-divider">/</span>
-              <span className="db-brand-tag">BIFROST BY MAXIM AI</span>
-            </div>
-          </div>
+    <div className="app-shell hb-dash">
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} items={paletteItems} />
 
-          <div className="db-topbar-actions">
-            <button
-              type="button"
-              className="theme-toggle-btn"
-              onClick={toggleTheme}
-              title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-              aria-label="Toggle theme"
-            >
-              {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
-              <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
-            </button>
+      <DashboardTopbar
+        tabs={tabs}
+        active={activeTab}
+        onSelect={setActiveTab}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onOpenPalette={() => setPaletteOpen(true)}
+        user={user}
+        onLogout={handleLogout}
+        onConnect={() => setShowWorkspaceOnly(false)}
+      />
 
-            <div
-              className="db-security-pill"
-              title="Deterministic isolation: only manifests read, zero source code access"
-              onClick={() => setActiveTab('telemetry')}
-              role="button"
-              tabIndex={0}
-            >
-              <ShieldCheck size={13} className="text-emerald" />
-              <span>Zero Code Retention</span>
-              <span className="db-live-dot" />
-            </div>
+      <main className="main-panel hbd-main">
+        <header className="hbd-page-head" key={activeTab}>
+          <span className="hb-kicker">
+            <span className="hb-kicker-n">{String(TAB_IDS.indexOf(activeTab) + 1).padStart(2, '0')}</span>
+            {sourceName && activeTab !== 'workspace' ? ` Latest: ${sourceName}` : ' DepShield'}
+          </span>
+          <h1 className="hbd-page-title">
+            {meta.title} <em>{meta.em}</em>
+          </h1>
+          <p className="hbd-page-sub">{meta.sub}</p>
+        </header>
 
-            {user ? (
-              <div className="db-profile-pill">
-                <img src={user.avatar_url} alt="" className="db-profile-avatar" />
-                <span className="db-profile-handle">@{user.login}</span>
-                <span className="db-profile-count">{user.public_repos} repos</span>
-                <button
-                  type="button"
-                  className="db-logout-btn"
-                  onClick={handleLogout}
-                  title="Disconnect GitHub account"
-                >
-                  <LogOut size={13} />
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                className="secondary-button btn-small"
-                onClick={() => setShowWorkspaceOnly(false)}
-              >
-                <Github size={13} /> Connect GitHub
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Horizontal Navigation Tabs */}
-        <nav className="db-nav-bar" aria-label="Dashboard navigation">
-          <button
-            type="button"
-            className={`db-nav-btn ${activeTab === 'agent' ? 'active' : ''}`}
-            onClick={() => setActiveTab('agent')}
-          >
-            <Sparkles size={14} />
-            <span>AI Agent & Repos</span>
-          </button>
-
-          <button
-            type="button"
-            className={`db-nav-btn ${activeTab === 'findings' ? 'active' : ''}`}
-            onClick={() => setActiveTab('findings')}
-          >
-            <ShieldAlert size={14} />
-            <span>Findings</span>
-            {matchedVulns > 0 && <span className="db-nav-badge alert">{matchedVulns}</span>}
-          </button>
-
-          <button
-            type="button"
-            className={`db-nav-btn ${activeTab === 'telemetry' ? 'active' : ''}`}
-            onClick={() => setActiveTab('telemetry')}
-          >
-            <Activity size={14} />
-            <span>Live Audit Stream</span>
-            <span className="db-nav-badge live">LIVE</span>
-          </button>
-
-          <button
-            type="button"
-            className={`db-nav-btn ${activeTab === 'scanner' ? 'active' : ''}`}
-            onClick={() => setActiveTab('scanner')}
-          >
-            <FileCode size={14} />
-            <span>Manual Scanner</span>
-          </button>
-
-          <button
-            type="button"
-            className={`db-nav-btn ${activeTab === 'workspace' ? 'active' : ''}`}
-            onClick={() => setActiveTab('workspace')}
-          >
-            <Users size={14} />
-            <span>Workspace</span>
-          </button>
-
-          <button
-            type="button"
-            className={`db-nav-btn ${activeTab === 'reports' ? 'active' : ''}`}
-            onClick={() => setActiveTab('reports')}
-          >
-            <BarChart3 size={14} />
-            <span>Reports</span>
-          </button>
-        </nav>
-      </header>
-
-      {/* Main Dashboard Panel */}
-      <main className="main-panel">
-        {/* Top Summary Stats Bar */}
-        <section className="stats-grid" aria-label="Security Overview Statistics">
-          <div className="stat-card">
-            <span className="stat-label">Connected Repositories</span>
-            <div className="stat-value-row">
-              <strong>{user ? user.public_repos : '—'}</strong>
-              <span className="delta">{user ? `@${user.login}` : 'GitHub linked'}</span>
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <span className="stat-label">Dependencies Audited</span>
-            <div className="stat-value-row">
-              <strong>{totalDeps > 0 ? totalDeps : '—'}</strong>
-              <span className="delta">{agentReport?.ecosystem ?? scan?.ecosystem ?? 'Awaiting audit'}</span>
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <span className="stat-label">Advisories Matched</span>
-            <div className="stat-value-row">
-              <strong className={matchedVulns > 0 ? 'text-alert' : ''}>{matchedVulns}</strong>
-              <span className={matchedVulns > 0 ? 'delta alert' : 'delta'}>OSV.dev authoritative</span>
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <span className="stat-label">Exact Pinned Checked</span>
-            <div className="stat-value-row">
-              <strong>{checkedDeps > 0 ? checkedDeps : '—'}</strong>
-              <span className="delta">
-                {unpinnedCount > 0 ? `${unpinnedCount} unpinned` : checkedDeps > 0 ? '100% verified' : 'Lockfile needed'}
-              </span>
-            </div>
-          </div>
-        </section>
-
-        {/* Tab 1: AI Agent & GitHub Repositories */}
-        {activeTab === 'agent' && (
-          <div className="tab-pane">
-            {user && (
-              <GitHubAgentPanel
-                token={token}
-                user={user}
-                report={agentReport}
-                setReport={setAgentReport}
-              />
-            )}
-          </div>
+        {activeTab !== 'workspace' && (
+          <StatCards
+            stats={[
+              { label: 'Public repositories', value: user ? user.public_repos : null, note: user ? `@${user.login}` : 'GitHub not connected' },
+              { label: 'Dependencies audited', value: hasResults ? totalDeps : null, note: agentReport?.ecosystem ?? scan?.ecosystem ?? 'Awaiting an audit', onClick: hasResults ? () => setActiveTab('reports') : undefined },
+              { label: 'Advisories matched', value: hasResults ? matchedVulns : null, note: 'From OSV.dev', tone: 'alert', onClick: () => setActiveTab('findings') },
+              {
+                label: 'Pinned & checked',
+                value: hasResults ? checkedDeps : null,
+                note: unpinnedCount > 0 ? `${unpinnedCount} unpinned range${unpinnedCount === 1 ? '' : 's'}` : hasResults ? 'All pinned' : 'A lockfile gives full coverage',
+              },
+            ]}
+          />
         )}
 
-        {/* Tab 2: Findings */}
-        {activeTab === 'findings' && (
-          <div className="tab-pane">
-            <section className="panel findings-panel">
-              <div className="panel-header">
-                <div>
-                  <h3>Verified OSV Advisories</h3>
-                  <p className="scan-help">
-                    Vulnerabilities matched deterministically from authoritative OSV.dev feeds.
-                  </p>
-                </div>
-                <span className={`panel-tag ${allFindings.length > 0 ? 'alert' : 'success'}`}>
-                  {allFindings.length > 0 ? `${allFindings.length} Active Advisories` : 'Clean / Clear'}
-                </span>
-              </div>
-
-              {allFindings.length > 0 ? (
-                <div className="findings-expanded-list">
-                  {allFindings.map((finding) => (
-                    <article className="finding-expanded-item" key={finding.key}>
-                      <div className="finding-topline">
-                        <div className="finding-title-row">
-                          <AlertTriangle size={18} className="text-alert" />
-                          <h4>{finding.packageName}</h4>
-                          <code className="version-pill">{finding.version}</code>
-                        </div>
-                        <a
-                          href={`https://osv.dev/vulnerability/${finding.id}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="osv-link-badge"
-                        >
-                          <span>{finding.id}</span>
-                          <ExternalLink size={12} />
-                        </a>
-                      </div>
-
-                      <p className="finding-summary-text">{finding.summary}</p>
-
-                      <div className="finding-meta-row">
-                        {finding.aliases.length > 0 && (
-                          <div className="alias-tags">
-                            <span className="meta-label">Aliases:</span>
-                            {finding.aliases.map((alias) => (
-                              <span key={alias} className="alias-chip">
-                                {alias}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        <div className="remediation-guidance">
-                          <span className="meta-label">Remediation:</span>
-                          <small>Upgrade package to patched version or review agent guidance.</small>
-                        </div>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <div className="empty-findings-state">
-                  <ShieldCheck size={48} className="text-green" />
-                  <h4>No Advisory Matches on Record</h4>
-                  <p>
-                    {agentReport || scan
-                      ? 'All checked pinned dependencies are currently clear of known OSV advisories.'
-                      : 'Run an AI Security Agent audit on one of your GitHub repositories or run a manual scan to inspect findings.'}
-                  </p>
-                  <button
-                    type="button"
-                    className="primary-button"
-                    onClick={() => setActiveTab('agent')}
-                  >
-                    <Sparkles size={16} /> Audit a Repository
+        <div className="tab-pane hbd-pane" key={`pane-${activeTab}`}>
+          {activeTab === 'agent' &&
+            (user ? (
+              <GitHubAgentPanel token={token} user={user} report={agentReport} setReport={setAgentReport} />
+            ) : (
+              <section className="hbd-panel hbd-empty">
+                <h3 className="hbd-serif">Connect GitHub to audit repositories</h3>
+                <p>You’re in the workspace without a GitHub token. Connect one to pick a repository, or use the manual scanner.</p>
+                <div className="hb-hero-ctas">
+                  <button type="button" className="hb-btn hb-btn-primary" onClick={() => setShowWorkspaceOnly(false)}>
+                    <Github size={15} /> Connect GitHub
+                  </button>
+                  <button type="button" className="hb-btn hb-btn-ghost" onClick={() => setActiveTab('scanner')}>
+                    <FileCode size={15} /> Manual scan
                   </button>
                 </div>
-              )}
-            </section>
-          </div>
-        )}
+              </section>
+            ))}
 
-        {/* Tab 3: Real-Time Audit & Telemetry Monitor */}
-        {activeTab === 'telemetry' && (
-          <div className="tab-pane">
-            <LiveAuditMonitor />
-          </div>
-        )}
+          {activeTab === 'findings' && (
+            <FindingsPanel
+              findings={allFindings}
+              hasResults={hasResults}
+              sourceLabel={exportLabel}
+              onAudit={() => setActiveTab(user ? 'agent' : 'scanner')}
+              notify={notify}
+            />
+          )}
 
-        {/* Tab 4: Manual Manifest Scanner */}
-        {activeTab === 'scanner' && (
-          <div className="tab-pane">
-            <section className="panel scan-panel">
-              <div className="panel-header">
-                <div>
-                  <h3>Direct Manifest & Lockfile Scanner</h3>
-                  <p className="scan-help">
-                    Paste raw npm or Python manifests to check against OSV.dev without connecting a repository.
-                  </p>
-                </div>
-                <div className="badge badge-accent">
-                  <FileCode size={14} /> Stateless Scan
-                </div>
-              </div>
+          {activeTab === 'telemetry' && <LiveAuditMonitor />}
 
+          {activeTab === 'scanner' && (
+            <section className="panel scan-panel hbd-panel">
               <form className="scan-form" onSubmit={submitScan}>
                 <div className="form-row-grid">
                   <label>
-                    Project Name
+                    Project name
                     <input
                       value={projectName}
                       onChange={(event) => setProjectName(event.target.value)}
@@ -581,9 +477,7 @@ export default function App() {
                     Ecosystem
                     <select
                       value={ecosystem}
-                      onChange={(event) =>
-                        changeEcosystem(event.target.value === 'python' ? 'python' : 'npm')
-                      }
+                      onChange={(event) => changeEcosystem(event.target.value === 'python' ? 'python' : 'npm')}
                     >
                       <option value="npm">npm (Node.js)</option>
                       <option value="python">Python (PyPI)</option>
@@ -591,12 +485,10 @@ export default function App() {
                   </label>
 
                   <label>
-                    File Type
+                    File type
                     <select
                       value={manifestType}
-                      onChange={(event) =>
-                        changeManifestType(event.target.value === 'lockfile' ? 'lockfile' : 'manifest')
-                      }
+                      onChange={(event) => changeManifestType(event.target.value === 'lockfile' ? 'lockfile' : 'manifest')}
                     >
                       <option value="manifest">Manifest (package.json / requirements.txt)</option>
                       <option value="lockfile">Lockfile (package-lock.json / uv.lock / poetry.lock)</option>
@@ -605,15 +497,22 @@ export default function App() {
                 </div>
 
                 <label className="manifest-field">
-                  <span>
-                    Paste{' '}
-                    {manifestType === 'lockfile'
-                      ? ecosystem === 'npm'
-                        ? 'package-lock.json'
-                        : 'poetry.lock, uv.lock, or Pipfile.lock'
-                      : ecosystem === 'npm'
-                        ? 'package.json'
-                        : 'requirements.txt'}
+                  <span className="hbd-field-row">
+                    <span>
+                      Paste{' '}
+                      {manifestType === 'lockfile'
+                        ? ecosystem === 'npm'
+                          ? 'package-lock.json'
+                          : 'poetry.lock, uv.lock, or Pipfile.lock'
+                        : ecosystem === 'npm'
+                          ? 'package.json'
+                          : 'requirements.txt'}
+                    </span>
+                    {!manifest && (
+                      <button type="button" className="hbd-link" onClick={() => changeManifestType(manifestType)}>
+                        Insert an example
+                      </button>
+                    )}
                   </span>
                   <textarea
                     value={manifest}
@@ -632,105 +531,50 @@ export default function App() {
                 )}
 
                 <div className="scan-actions">
-                  <button type="submit" className="primary-button" disabled={isScanning}>
+                  <button type="submit" className="hb-btn hb-btn-primary" disabled={isScanning || !manifest.trim()}>
                     {isScanning ? (
                       <>
-                        <LoaderCircle size={16} className="spin" />
-                        <span>Querying OSV.dev...</span>
+                        <LoaderCircle size={16} className="spin" /> Checking OSV.dev…
                       </>
                     ) : (
                       <>
-                        <Shield size={16} />
-                        <span>Run Manifest Scan</span>
+                        <Shield size={16} /> Run scan
                       </>
                     )}
                   </button>
                 </div>
               </form>
             </section>
-          </div>
-        )}
+          )}
 
-        {/* Tab 4: Workspace & Organizations */}
-        {activeTab === 'workspace' && (
-          <div className="tab-pane">
+          {activeTab === 'workspace' && (
             <div className="workspace-tab-wrap">
               <WorkspacePanel />
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Tab 5: Executive Reports & Posture */}
-        {activeTab === 'reports' && (
-          <div className="tab-pane">
-            <section className="panel report-panel">
-              <div className="panel-header">
-                <div>
-                  <h3>Executive Security Posture Overview</h3>
-                  <p className="scan-help">
-                    Continuous monitoring metrics, coverage confidence, and dependency hygiene indicators.
-                  </p>
-                </div>
-                <button type="button" className="secondary-button btn-small">
-                  Export PDF Report <ArrowRight size={14} />
-                </button>
-              </div>
-
-              <div className="report-grid">
-                <div className="report-card-item">
-                  <span className="report-label">Exact-Version Coverage</span>
-                  <strong>
-                    {totalDeps > 0
-                      ? `${Math.round((checkedDeps / totalDeps) * 100)}%`
-                      : '—'}
-                  </strong>
-                  <p className="report-note">
-                    Percentage of dependencies with pinned exact versions verified against OSV.
-                  </p>
-                </div>
-
-                <div className="report-card-item">
-                  <span className="report-label">Remediation Confidence</span>
-                  <strong>{matchedVulns > 0 ? 'High (OSV Pinned)' : 'Clear'}</strong>
-                  <p className="report-note">
-                    Advisories ground AI investigations strictly in authoritative published evidence.
-                  </p>
-                </div>
-
-                <div className="report-card-item">
-                  <span className="report-label">Deterministic Pipeline</span>
-                  <strong className="text-green">100% Deterministic</strong>
-                  <p className="report-note">
-                    Advisories come from OSV.dev; AI never hallucinates or verifies findings ungrounded.
-                  </p>
-                </div>
-              </div>
-
-              <div className="workflow-card-inset">
-                <h4>DepShield Defense Philosophy</h4>
-                <ul className="workflow-list-clean">
-                  <li>
-                    <CheckCircle2 size={16} className="text-green" />
-                    <span>1. Exact package names and versions are extracted without executing build scripts.</span>
-                  </li>
-                  <li>
-                    <CheckCircle2 size={16} className="text-green" />
-                    <span>2. Deterministic queries against OSV.dev establish affected ranges and known advisories.</span>
-                  </li>
-                  <li>
-                    <CheckCircle2 size={16} className="text-green" />
-                    <span>3. The Bifrost AI Security Agent generates blast radius and upgrade explanations.</span>
-                  </li>
-                  <li>
-                    <CheckCircle2 size={16} className="text-green" />
-                    <span>4. Pre-install CLI gates intercept dependency additions before installation occurs.</span>
-                  </li>
-                </ul>
-              </div>
-            </section>
-          </div>
-        )}
+          {activeTab === 'reports' && (
+            <ReportsPanel
+              totalDeps={totalDeps}
+              checkedDeps={checkedDeps}
+              unpinned={unpinnedCount}
+              advisories={matchedVulns}
+              packagesAffected={packagesAffected}
+              source={sourceName}
+              report={agentReport ?? scan}
+              notify={notify}
+            />
+          )}
+        </div>
       </main>
+
+      <div className="hbd-toast-region" aria-live="polite">
+        {toast && (
+          <div className="hbd-toast" key={toast.id} role="status">
+            {toast.message}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -36,23 +36,9 @@ import { useScrollReveal } from '../landingMotion'
 import PromptRing from './PromptRing'
 import FeatureStory from './FeatureStory'
 import LanyardBadge from './LanyardBadge'
+import SourcesStrip from './SourcesStrip'
 import '../landing-seesaw.css'
 import '../landing-3d.css'
-
-const MARQUEE_ITEMS = [
-  'OSV.dev advisories',
-  'npm',
-  'PyPI',
-  'uv.lock',
-  'package-lock.json',
-  'GHSA & CVE IDs',
-  'Bifrost gateway',
-  'OpenAI · Anthropic · Groq',
-  'Zero source ingestion',
-  'Pre-install gate',
-  'requirements.txt',
-  'GitHub repos',
-]
 
 const NAV_LINKS = [
   { id: 'sw-capabilities', label: 'Product' },
@@ -82,6 +68,8 @@ interface GitHubLoginGateProps {
   onSkipToWorkspace?: () => void
   theme?: 'dark' | 'light'
   onToggleTheme?: () => void
+  /** Shown in the Connect modal on arrival, e.g. when a saved session expired. */
+  initialError?: string | null
 }
 
 export default function GitHubLoginGate({
@@ -89,6 +77,7 @@ export default function GitHubLoginGate({
   onSkipToWorkspace,
   theme = 'dark',
   onToggleTheme,
+  initialError,
 }: GitHubLoginGateProps) {
   const [tokenInput, setTokenInput] = useState('')
   const [showToken, setShowToken] = useState(false)
@@ -109,6 +98,12 @@ export default function GitHubLoginGate({
   const closeConnect = useCallback(() => setConnectOpen(false), [])
 
   useScrollReveal(rootRef)
+
+  useEffect(() => {
+    if (!initialError) return
+    setError(initialError)
+    setConnectOpen(true)
+  }, [initialError])
 
   function openConnect() {
     setError('')
@@ -238,7 +233,7 @@ export default function GitHubLoginGate({
       setError(
         err instanceof Error
           ? err.message
-          : 'Unable to authenticate with GitHub. Verify your token permissions or ensure the backend is running.',
+          : 'We couldn’t sign you in with GitHub. Please check your token and try again.',
       )
     } finally {
       setLoading(false)
@@ -375,8 +370,8 @@ export default function GitHubLoginGate({
           </span>
 
           <h1 className="hb-hero-title">
-            <span className="ss-line"><span className="ss-intro" style={{ '--i': 1 } as React.CSSProperties}>Staff AI on your next release.</span></span>
-            <span className="ss-line"><span className="ss-intro hb-muted" style={{ '--i': 2 } as React.CSSProperties}><em>Meet DepShield.</em></span></span>
+            <span className="ss-line"><span className="ss-intro" style={{ '--i': 1 } as React.CSSProperties}>Know what’s in your dependencies</span></span>
+            <span className="ss-line"><span className="ss-intro hb-muted" style={{ '--i': 2 } as React.CSSProperties}><em>before attackers do.</em></span></span>
           </h1>
 
           <p className="hb-hero-sub ss-intro" style={{ '--i': 3 } as React.CSSProperties}>
@@ -408,20 +403,7 @@ export default function GitHubLoginGate({
       </section>
 
       {/* ── SOURCES STRIP ─────────────────────────────────────── */}
-      <div className="ss-marquee hb-marquee" aria-hidden="true">
-        <div className="ss-marquee-track">
-          {[0, 1].map((copy) => (
-            <div className="ss-marquee-group" key={copy}>
-              {MARQUEE_ITEMS.map((item) => (
-                <span className="ss-marquee-item" key={item}>
-                  <span className="ss-marquee-dot" />
-                  {item}
-                </span>
-              ))}
-            </div>
-          ))}
-        </div>
-      </div>
+      <SourcesStrip />
 
       {/* ── PRODUCT STORY ─────────────────────────────────────── */}
       <section id="sw-capabilities" className="sw-section hb-section">

@@ -240,7 +240,7 @@ export default function GitHubAgentPanel({
         },
       ])
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Analysis failed. Ensure the DepShield backend is running.')
+      setError(err instanceof Error ? err.message : 'The audit couldn’t be completed. Please try again in a moment.')
     } finally {
       setAnalyzing(false)
     }
