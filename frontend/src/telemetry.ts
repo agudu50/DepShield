@@ -17,12 +17,18 @@ export interface TelemetryEvent {
 const STORAGE_KEY = 'depshield_telemetry_events'
 const listeners: Set<(events: TelemetryEvent[]) => void> = new Set()
 
+/**
+ * Events older builds wrote that asserted checks nothing actually performed
+ * ("sandbox boundary enforced", a canned "isolation probe passed"). Drop them on read.
+ */
+const RETIRED_ACTIONS = new Set(['SOURCE_CODE_SANDBOX', 'SANDBOX_ISOLATION_PROBE', 'EXFILTRATION_PROOF'])
+
 export function getStoredEvents(): TelemetryEvent[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return []
     const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : []
+    return Array.isArray(parsed) ? parsed.filter((e: TelemetryEvent) => !RETIRED_ACTIONS.has(e?.action)) : []
   } catch {
     return []
   }

@@ -9,6 +9,7 @@ import {
   FileJson,
   Github,
   LoaderCircle,
+  Lock,
   LogOut,
   Moon,
   Shield,
@@ -314,7 +315,12 @@ export default function App() {
       icon: <ShieldAlert size={14} />,
       badge: matchedVulns > 0 ? { text: String(matchedVulns), tone: 'alert' } : undefined,
     },
-    { id: 'telemetry', label: 'Live stream', icon: <Activity size={14} />, badge: { text: 'Live', tone: 'live' } },
+    {
+      id: 'telemetry',
+      label: 'Live stream',
+      icon: user ? <Activity size={14} /> : <Lock size={14} />,
+      badge: user ? { text: 'Live', tone: 'live' } : undefined,
+    },
     { id: 'scanner', label: 'Manual scan', icon: <FileCode size={14} /> },
     { id: 'reports', label: 'Report', icon: <BarChart3 size={14} /> },
   ]
@@ -486,7 +492,27 @@ export default function App() {
             />
           )}
 
-          {activeTab === 'telemetry' && <LiveAuditMonitor notify={notify} />}
+          {activeTab === 'telemetry' &&
+            (user ? (
+              <LiveAuditMonitor notify={notify} />
+            ) : (
+              /* The stream can contain repository names from earlier sessions; only show it once signed in. */
+              <section className="hbd-panel hbd-empty">
+                <div className="hbd-empty-art" aria-hidden="true">
+                  <span className="hbd-empty-card c1" />
+                  <span className="hbd-empty-card c2" />
+                  <span className="hbd-empty-card c3"><Lock size={26} strokeWidth={1.5} /></span>
+                </div>
+                <h3 className="hbd-serif">Connect GitHub to see your audit stream</h3>
+                <p>
+                  The live stream shows which repositories and files your audits read. It’s only available once you’ve
+                  connected a GitHub account.
+                </p>
+                <button type="button" className="hb-btn hb-btn-primary" onClick={() => setShowWorkspaceOnly(false)}>
+                  <Github size={15} /> Connect GitHub
+                </button>
+              </section>
+            ))}
 
           {activeTab === 'scanner' && (
             <section className="panel scan-panel hbd-panel">
