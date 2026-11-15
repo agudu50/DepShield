@@ -6,6 +6,7 @@ export type Finding = {
   aliases: string[]
   summary: string
   status: string
+  ecosystem?: string
 }
 
 function download(filename: string, mime: string, body: string) {

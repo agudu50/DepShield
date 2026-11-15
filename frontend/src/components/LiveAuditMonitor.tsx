@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle,
+  ArrowUpDown,
   Check,
   Copy,
   Cpu,
+  ExternalLink,
   FileJson,
+  Filter,
+  FolderGit2,
   Globe,
   Laptop,
   Pause,
@@ -31,6 +35,31 @@ import { exportJson } from './dashboard/exporters'
 
 type Category = TelemetryEvent['category']
 type Filter = 'all' | Category
+export type SortOrder = 'newest' | 'oldest' | 'project' | 'risk'
+
+export interface ParsedTarget {
+  project?: string
+  subpath?: string
+  suffix?: string
+  isRepo: boolean
+}
+
+export function parseEventTarget(target: string): ParsedTarget {
+  const repoMatch = target.match(/^([a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+)(\/.*?)?(\s*\(.*\))?$/)
+  if (repoMatch && !target.startsWith('http')) {
+    const project = repoMatch[1]
+    const subpath = repoMatch[2] ? repoMatch[2].replace(/^\//, '') : ''
+    const suffix = repoMatch[3] ? repoMatch[3].trim() : ''
+    return { project, subpath, suffix, isRepo: true }
+  }
+
+  const manualMatch = target.match(/^(.+?)\s*\((npm|python)\s+(manifest|lockfile)\)$/i)
+  if (manualMatch) {
+    return { project: manualMatch[1].trim(), suffix: `(${manualMatch[2]} ${manualMatch[3]})`, isRepo: false }
+  }
+
+  return { isRepo: false }
+}
 
 const CATEGORIES: { id: Category; label: string; shade: string }[] = [
   { id: 'file_read', label: 'Files read', shade: '1' },
@@ -88,6 +117,8 @@ export default function LiveAuditMonitor({ notify }: { notify?: (message: string
   const [liveEvents, setLiveEvents] = useState<TelemetryEvent[]>(() => getStoredEvents())
   const [paused, setPaused] = useState<TelemetryEvent[] | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
+  const [projectFilter, setProjectFilter] = useState<string>('all')
+  const [sortOrder, setSortOrder] = useState<SortOrder>('newest')
   const [search, setSearch] = useState('')
   const [probing, setProbing] = useState(false)
   const [copied, setCopied] = useState<string | null>(null)

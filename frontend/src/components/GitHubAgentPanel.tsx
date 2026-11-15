@@ -6,7 +6,7 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  Copy,
+  Info,
   ExternalLink,
   FileCode,
   FolderOpen,
@@ -36,6 +36,8 @@ import {
 import { addTelemetryBatch } from '../telemetry'
 import ModelPicker from './ModelPicker'
 import RepoSidebar from './RepoSidebar'
+import AdvisoryModal, { type AdvisoryTarget } from './AdvisoryModal'
+import RemediationList, { type VulnerablePackage } from './RemediationList'
 import {
   auditTelemetry,
   coveredByLockfile,
@@ -91,15 +93,10 @@ export default function GitHubAgentPanel({
   const [depFilter, setDepFilter] = useState<'all' | 'vuln' | 'clean'>('vuln')
   const [depSearch, setDepSearch] = useState('')
   const [depPage, setDepPage] = useState(1)
-  const [copiedCmd, setCopiedCmd] = useState<string | null>(null)
+  const [advisory, setAdvisory] = useState<AdvisoryTarget | null>(null)
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(() => new Set())
 
   const PAGE_SIZE = 15
-
-  function copyText(cmd: string) {
-    navigator.clipboard.writeText(cmd)
-    setCopiedCmd(cmd)
-    setTimeout(() => setCopiedCmd(null), 2000)
-  }
 
   // When a repository is selected, discover its manifests
   useEffect(() => {
@@ -225,37 +222,24 @@ export default function GitHubAgentPanel({
   const totalPages = Math.ceil(filteredDeps.length / PAGE_SIZE) || 1
   const paginatedDeps = filteredDeps.slice((depPage - 1) * PAGE_SIZE, depPage * PAGE_SIZE)
 
-  // Format recommendations into structured items
-  function formatRecommendation(rec: string, ecosystem: string) {
-    const pkgMatch = rec.match(/Upgrade package '([^']+)'/)
-    const currentMatch = rec.match(/current: ([^)]+)/)
-    const advisories = Array.from(rec.matchAll(/(GHSA-[a-z0-9-]+|CVE-\d{4}-\d+)/gi)).map((m) => m[0])
+  // Vulnerable packages and non-package notes for the current report view
+  const vulnerablePackages: VulnerablePackage[] = (viewReport?.dependencies ?? [])
+    .filter((d) => d.vulnerabilities.length > 0)
+    .map((d) => ({ name: d.name, version: d.version, ecosystem: d.ecosystem, advisoryIds: d.vulnerabilities.map((v) => v.id) }))
+  const reportNotes = (viewReport?.recommendations ?? []).filter((r) => !r.startsWith('Upgrade package '))
 
-    const pkgName = pkgMatch ? pkgMatch[1] : null
-    const currentVer = currentMatch ? currentMatch[1] : null
-
-    let installCmd = ''
-    if (pkgName) {
-      if (ecosystem.toLowerCase().includes('npm')) {
-        installCmd = `npm install ${pkgName}@latest`
-      } else if (ecosystem.toLowerCase().includes('pypi') || ecosystem.toLowerCase().includes('python')) {
-        installCmd = `pip install --upgrade ${pkgName}`
-      } else {
-        installCmd = `depshield add ${pkgName}@latest`
-      }
-    }
-
-    return {
-      raw: rec,
-      pkgName,
-      currentVer,
-      advisories,
-      installCmd,
-    }
+  function toggleRow(key: string) {
+    setExpandedRows((cur) => {
+      const next = new Set(cur)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
   }
 
   return (
     <div className="agent-panel-wrapper">
+      <AdvisoryModal target={advisory} onClose={() => setAdvisory(null)} />
       {error && (
         <div className="alert-banner alert-error" role="alert">
           <AlertTriangle size={18} />
@@ -436,92 +420,25 @@ export default function GitHubAgentPanel({
                   <p className="agent-narrative">{viewReport.agent_summary}</p>
                 )}
 
-                {/* Structured Actionable Upgrades & Fixes */}
-                {viewReport.recommendations.length > 0 && (
-                  <div className="recommendations-box">
-                    <div className="rec-box-head">
-                      <Sparkles size={14} className="text-purple" />
-                      <h5>Actionable Upgrades & Fixes ({viewReport.recommendations.length})</h5>
-                      <span className="rec-box-tag">From OSV advisories</span>
+                {/* Fixes, built from the dependency data (not parsed text) */}
+                {vulnerablePackages.length > 0 && (
+                  <div className="hbx-section">
+                    <div className="hbx-head">
+                      <h5 className="hbd-serif">How to fix</h5>
+                      <span>
+                        {vulnerablePackages.length} package{vulnerablePackages.length === 1 ? '' : 's'} · safe versions from OSV.dev ·
+                        click an advisory ID to see what it means
+                      </span>
                     </div>
-
-                    <div className="rec-cards-list">
-                      {viewReport.recommendations.map((rec, i) => {
-                        const parsed = formatRecommendation(rec, viewReport.ecosystem)
-                        return (
-                          <div key={i} className="recommendation-card">
-                            <div className="rec-card-topline">
-                              <div className="rec-pkg-group">
-                                <span className="rec-pkg-name">
-                                  {parsed.pkgName || 'Flagged Package'}
-                                </span>
-                                {parsed.currentVer && (
-                                  <span className="rec-version-pill current">
-                                    current: <code>{parsed.currentVer}</code>
-                                  </span>
-                                )}
-                                <span className="rec-version-pill target">
-                                  target: <code>latest</code>
-                                </span>
-                              </div>
-
-                              {parsed.installCmd && (
-                                <div className="rec-cmd-box">
-                                  <code>{parsed.installCmd}</code>
-                                  <button
-                                    type="button"
-                                    className="rec-copy-btn"
-                                    onClick={() => copyText(parsed.installCmd)}
-                                    title="Copy fix command"
-                                  >
-                                    {copiedCmd === parsed.installCmd ? (
-                                      <>
-                                        <Check size={12} className="text-green" />
-                                        <span>Copied</span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Copy size={12} />
-                                        <span>Copy</span>
-                                      </>
-                                    )}
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-
-                            <p className="rec-clean-desc">
-                              Upgrade to a release outside the affected range listed in the linked advisories. Check
-                              the changelog for breaking changes before bumping a major version.
-                            </p>
-
-                            <div className="rec-card-footer">
-                              <div className="rec-advisories-row">
-                                <span className="rec-adv-label">Advisories:</span>
-                                {parsed.advisories.map((adv) => (
-                                  <a
-                                    key={adv}
-                                    href={`https://osv.dev/vulnerability/${adv}`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="rec-adv-chip"
-                                  >
-                                    <AlertTriangle size={11} />
-                                    <span>{adv}</span>
-                                    <ExternalLink size={10} />
-                                  </a>
-                                ))}
-                              </div>
-                              <span className="rec-bifrost-stamp">
-                                <ShieldCheck size={12} />
-                                <span>OSV.dev</span>
-                              </span>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
+                    <RemediationList packages={vulnerablePackages} onOpen={setAdvisory} />
                   </div>
+                )}
+                {reportNotes.length > 0 && (
+                  <ul className="hbx-notes">
+                    {reportNotes.map((n) => (
+                      <li key={n}><Info size={14} /> {n}</li>
+                    ))}
+                  </ul>
                 )}
               </div>
 
@@ -617,20 +534,22 @@ export default function GitHubAgentPanel({
                                 <td>
                                   {hasVulns ? (
                                     <div className="vuln-badges">
-                                      {dep.vulnerabilities.map((v) => (
-                                        <a
+                                      {(expandedRows.has(dep.name + dep.version) ? dep.vulnerabilities : dep.vulnerabilities.slice(0, 3)).map((v) => (
+                                        <button
                                           key={v.id}
-                                          href={`https://osv.dev/vulnerability/${v.id}`}
-                                          target="_blank"
-                                          rel="noreferrer"
-                                          className="vuln-chip"
-                                          title={v.summary}
+                                          type="button"
+                                          className="vuln-chip hbx-id"
+                                          title="What does this advisory mean?"
+                                          onClick={() => setAdvisory({ id: v.id, packageName: dep.name, version: dep.version, ecosystem: dep.ecosystem })}
                                         >
-                                          <AlertTriangle size={11} />
-                                          <span>{v.id}</span>
-                                          <ExternalLink size={10} />
-                                        </a>
+                                          {v.id}
+                                        </button>
                                       ))}
+                                      {dep.vulnerabilities.length > 3 && (
+                                        <button type="button" className="hbd-link hbx-more" onClick={() => toggleRow(dep.name + dep.version)}>
+                                          {expandedRows.has(dep.name + dep.version) ? 'Show fewer' : `+${dep.vulnerabilities.length - 3} more`}
+                                        </button>
+                                      )}
                                     </div>
                                   ) : (
                                     <span className="clean-pill">

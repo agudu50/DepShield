@@ -11,6 +11,7 @@ export interface TelemetryEvent {
   verdict: 'safe' | 'warning' | 'blocked' | 'info'
   bytesSent: number
   sourceCodeRead: number
+  project?: string
 }
 
 const STORAGE_KEY = 'depshield_telemetry_events'

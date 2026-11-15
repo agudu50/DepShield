@@ -96,6 +96,201 @@
 .hbl-filters button:hover { color: var(--ss-text); border-color: var(--ss-border-strong); }
 .hbl-filters button.active { background: var(--hb-ink); border-color: var(--hb-ink); color: var(--hb-paper); }
 .hbl-search { flex: none; }
+.hbl-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.hbl-controls-row .hbl-search {
+  flex: 1;
+  min-width: 200px;
+}
+.hbl-sort-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--ss-surface);
+  border: 1px solid var(--ss-border);
+  border-radius: 999px;
+  padding: 0 12px 0 10px;
+  height: 34px;
+}
+.hbl-sort-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--hb-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--ss-faint);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.hbl-sort-select {
+  background: transparent;
+  border: none;
+  color: var(--ss-text);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+}
+.hbl-sort-select option {
+  background: var(--ss-surface, #18181b);
+  color: var(--ss-text, #f4f4f5);
+}
+
+.hbl-project-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-top: 4px;
+  border-top: 1px dashed var(--ss-border);
+}
+.hbl-project-pills::-webkit-scrollbar { display: none; }
+.hbl-project-pills-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--hb-mono);
+  font-size: 0.72rem;
+  color: var(--ss-faint);
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+.hbl-proj-pill {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--ss-border);
+  background: var(--ss-surface);
+  color: var(--ss-muted);
+  font: inherit;
+  font-size: 0.76rem;
+  font-family: var(--hb-mono);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.hbl-proj-pill b {
+  font-size: 0.68rem;
+  opacity: 0.75;
+}
+.hbl-proj-pill:hover {
+  color: var(--ss-text);
+  border-color: var(--ss-border-strong);
+}
+.hbl-proj-pill.active {
+  background: var(--hb-ink);
+  border-color: var(--hb-ink);
+  color: var(--hb-paper);
+}
+.hbl-proj-reset {
+  flex-shrink: 0;
+  font-size: 0.76rem;
+  margin-left: 4px;
+}
+
+/* Formatted target row */
+.hbl-target-box {
+  margin-top: 8px;
+}
+.hbl-target-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+.hbl-target-project-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid var(--ss-border-strong);
+  background: var(--ss-surface-2);
+  color: var(--ss-text);
+  font-family: var(--hb-mono);
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.hbl-target-project-chip:hover {
+  border-color: var(--ss-text);
+}
+.hbl-target-project-chip.is-active {
+  background: var(--hb-ink);
+  color: var(--hb-paper);
+  border-color: var(--hb-ink);
+}
+.hbl-target-extlink {
+  display: inline-flex;
+  align-items: center;
+  color: var(--ss-faint);
+  padding: 2px;
+  border-radius: 4px;
+  transition: color 0.2s;
+}
+.hbl-target-extlink:hover {
+  color: var(--ss-text);
+}
+.hbl-target-path {
+  font-family: var(--hb-mono);
+  font-size: 0.76rem;
+  color: var(--ss-muted);
+  word-break: break-all;
+}
+.hbl-target-suffix {
+  font-family: var(--hb-mono);
+  font-size: 0.7rem;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--ss-surface);
+  border: 1px solid var(--ss-border);
+  color: var(--ss-faint);
+}
+
+.hbl-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--ss-border);
+}
+.hbl-card-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid var(--ss-border);
+  background: var(--ss-surface);
+  color: var(--ss-muted);
+  font: inherit;
+  font-size: 0.74rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.hbl-card-action-btn:hover {
+  color: var(--ss-text);
+  border-color: var(--ss-border-strong);
+  background: var(--ss-surface-2);
+}
 .hbl-kbd {
   font-family: var(--hb-mono);
   font-size: 0.7rem;

@@ -44,6 +44,7 @@ import './landing-3d.css'
 import './dashboard.css'
 import './stream-workspace.css'
 import './agent-launch.css'
+import './advisory.css'
 
 const STORAGE_KEY = 'depshield_github_pat'
 
@@ -231,6 +232,7 @@ export default function App() {
           verdict: 'safe',
           bytesSent: 0,
           sourceCodeRead: 0,
+          project: projectName.trim() || 'Manual Target',
         },
         {
           source: 'gateway',
@@ -241,6 +243,7 @@ export default function App() {
           verdict: result.vulnerability_count > 0 ? 'warning' : 'safe',
           bytesSent: result.dependency_count * 28,
           sourceCodeRead: 0,
+          project: projectName.trim() || 'Manual Target',
         },
       ])
     } catch (error) {
@@ -296,6 +299,7 @@ export default function App() {
         aliases: v.aliases,
         summary: v.summary,
         status: dep.status,
+        ecosystem: dep.ecosystem,
       })),
     )
   }, [agentReport, scan])

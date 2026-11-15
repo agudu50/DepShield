@@ -125,6 +125,7 @@ export function auditTelemetry(
       verdict: 'safe',
       bytesSent: 0,
       sourceCodeRead: 0,
+      project: repo,
     },
     {
       source: 'agent',
@@ -135,6 +136,7 @@ export function auditTelemetry(
       verdict: 'safe',
       bytesSent: 0,
       sourceCodeRead: 0,
+      project: repo,
     },
     {
       source: 'gateway',
@@ -145,6 +147,7 @@ export function auditTelemetry(
       verdict: r.vulnerability_count > 0 ? 'warning' : 'safe',
       bytesSent: r.checked_count * 32,
       sourceCodeRead: 0,
+      project: repo,
     },
     ...(r.vulnerability_count > 0
       ? [
@@ -158,6 +161,7 @@ export function auditTelemetry(
                 verdict: 'warning' as const,
                 bytesSent: 0,
                 sourceCodeRead: 0,
+                project: repo,
               }
             : {
                 source: 'gateway' as const,
@@ -168,6 +172,7 @@ export function auditTelemetry(
                 verdict: 'warning' as const,
                 bytesSent: 0,
                 sourceCodeRead: 0,
+                project: repo,
               },
         ]
       : []),
@@ -180,6 +185,7 @@ export function auditTelemetry(
       verdict: r.risk_level === 'CLEAN' ? 'safe' : 'warning',
       bytesSent: 0,
       sourceCodeRead: 0,
+      project: repo,
     },
   ]
 }
