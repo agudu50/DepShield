@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useCallback, useState, useEffect, useRef } from 'react'
 import {
   Activity,
   AlertTriangle,
@@ -9,8 +9,6 @@ import {
   Copy,
   Database,
   ExternalLink,
-  Eye,
-  EyeOff,
   Github,
   Globe,
   KeyRound,
@@ -20,6 +18,7 @@ import {
   Menu,
   Moon,
   Package,
+  Rainbow,
   RefreshCw,
   Search,
   ShieldCheck,
@@ -32,19 +31,31 @@ import {
 import { checkBifrostHealth, getGitHubUser, type GitHubUserProfile } from '../api'
 import { bifrostHealthToEvent } from '../bifrostProbe'
 import CommandPalette, { type PaletteItem } from './CommandPalette'
+import ConnectModal from './ConnectModal'
+import { useScrollReveal } from '../landingMotion'
+import PromptRing from './PromptRing'
+import FeatureStory from './FeatureStory'
+import LanyardBadge from './LanyardBadge'
 import '../landing-seesaw.css'
+import '../landing-3d.css'
 
-type CapCategory = 'all' | 'ai' | 'privacy' | 'cli' | 'verification'
-const CAP_FILTERS: { id: CapCategory; label: string }[] = [
-  { id: 'all', label: 'All' },
-  { id: 'ai', label: 'AI Reasoning' },
-  { id: 'privacy', label: 'Privacy' },
-  { id: 'cli', label: 'CLI' },
-  { id: 'verification', label: 'Verification' },
+const MARQUEE_ITEMS = [
+  'OSV.dev advisories',
+  'npm',
+  'PyPI',
+  'uv.lock',
+  'package-lock.json',
+  'GHSA & CVE IDs',
+  'Bifrost gateway',
+  'OpenAI · Anthropic · Groq',
+  'Zero source ingestion',
+  'Pre-install gate',
+  'requirements.txt',
+  'GitHub repos',
 ]
 
 const NAV_LINKS = [
-  { id: 'sw-capabilities', label: 'Capabilities' },
+  { id: 'sw-capabilities', label: 'Product' },
   { id: 'sw-stack', label: 'Built on' },
   { id: 'sw-workflow', label: 'Workflow' },
   { id: 'sw-integrity', label: 'Zero-Theft' },
@@ -52,7 +63,7 @@ const NAV_LINKS = [
 ]
 
 const STACK = [
-  { name: 'Bifrost by Maxim AI', tag: 'AI gateway', desc: 'OpenAI-compatible gateway that routes every explanation to your configured model.', icon: Sparkles, url: 'https://github.com/maximhq/bifrost' },
+  { name: 'Bifrost by Maxim AI', tag: 'AI gateway', desc: 'OpenAI-compatible gateway that routes every explanation to your configured model.', icon: Rainbow, url: 'https://github.com/maximhq/bifrost' },
   { name: 'OSV.dev', tag: 'Advisory feed', desc: 'Google’s open vulnerability database, the single source of truth for findings.', icon: Database, url: 'https://osv.dev' },
   { name: 'GitHub', tag: 'Targets', desc: 'Read-only manifest discovery across your repositories and branches.', icon: Github, url: 'https://github.com' },
   { name: 'npm', tag: 'Ecosystem', desc: 'package.json, package-lock.json and npm-shrinkwrap.json parsing.', icon: Package, url: 'https://www.npmjs.com' },
@@ -65,7 +76,6 @@ import {
   addTelemetryEvent,
   type TelemetryEvent,
 } from '../telemetry'
-import Audit3DShield from './Audit3DShield'
 
 interface GitHubLoginGateProps {
   onLoginSuccess: (token: string, user: GitHubUserProfile) => void
@@ -94,6 +104,17 @@ export default function GitHubLoginGate({
   const [activeSection, setActiveSection] = useState<string | null>(null)
   const [indicator, setIndicator] = useState({ left: 0, width: 0 })
   const pillRef = useRef<HTMLElement>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
+  const [connectOpen, setConnectOpen] = useState(false)
+  const closeConnect = useCallback(() => setConnectOpen(false), [])
+
+  useScrollReveal(rootRef)
+
+  function openConnect() {
+    setError('')
+    setMenuOpen(false)
+    setConnectOpen(true)
+  }
 
   // Scroll spy: the active link is the last section whose top has passed under the nav.
   useEffect(() => {
@@ -143,7 +164,6 @@ export default function GitHubLoginGate({
       window.removeEventListener('resize', closeOnResize)
     }
   }, [menuOpen])
-  const [capFilter, setCapFilter] = useState<CapCategory>('all')
 
   useEffect(() => {
     setTelemetryEvents(getStoredEvents())
@@ -164,11 +184,11 @@ export default function GitHubLoginGate({
   }, [])
 
   const isMac = typeof navigator !== 'undefined' && /mac/i.test(navigator.platform)
-  const capShown = (cat: Exclude<CapCategory, 'all'>) => capFilter === 'all' || capFilter === cat
 
   const paletteItems: PaletteItem[] = [
-    { id: 'connect', group: 'Navigate', label: 'Connect GitHub token', hint: 'Start an audit', icon: <KeyRound size={14} />, run: () => focusConnect() },
-    { id: 'caps', group: 'Navigate', label: 'Capabilities', icon: <Sparkles size={14} />, run: () => scrollTo('sw-capabilities') },
+    { id: 'connect', group: 'Navigate', label: 'Connect GitHub token', hint: 'Start an audit', icon: <KeyRound size={14} />, run: () => openConnect() },
+    { id: 'caps', group: 'Navigate', label: 'Product', hint: 'What it does', icon: <Sparkles size={14} />, run: () => scrollTo('sw-capabilities') },
+    { id: 'team', group: 'Navigate', label: 'Add DepShield to your team', icon: <Github size={14} />, run: () => scrollTo('hb-cta') },
     { id: 'stack', group: 'Navigate', label: 'Built on', hint: 'Bifrost, OSV, GitHub…', icon: <Layers size={14} />, run: () => scrollTo('sw-stack') },
     { id: 'workflow', group: 'Navigate', label: 'Workflow', icon: <Globe size={14} />, run: () => scrollTo('sw-workflow') },
     { id: 'integrity', group: 'Navigate', label: 'Zero-Theft Guarantee', icon: <Lock size={14} />, run: () => scrollTo('sw-integrity') },
@@ -181,11 +201,6 @@ export default function GitHubLoginGate({
       id: `copy-${cmd}`, group: 'Copy command', label: cmd, icon: <Copy size={14} />, run: () => copyCommand(cmd),
     })),
   ]
-
-  function focusConnect() {
-    scrollTo('sw-connect')
-    window.setTimeout(() => document.querySelector<HTMLInputElement>('.sw-token-input')?.focus(), 350)
-  }
 
 
   function copyCommand(cmd: string) {
@@ -231,8 +246,20 @@ export default function GitHubLoginGate({
   }
 
   return (
-    <div className="sw-root">
+    <div className="sw-root hb-root" ref={rootRef}>
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} items={paletteItems} />
+      <ConnectModal
+        open={connectOpen}
+        onClose={closeConnect}
+        token={tokenInput}
+        onTokenChange={setTokenInput}
+        showToken={showToken}
+        onToggleShow={() => setShowToken((s) => !s)}
+        loading={loading}
+        error={error}
+        onSubmit={handleConnect}
+        onSkipToWorkspace={onSkipToWorkspace}
+      />
 
       {/* ── NAV ─────────────────────────────────────────────────── */}
       <header className={`sw-nav ss-nav ${scrolled ? 'is-scrolled' : ''}`}>
@@ -287,12 +314,12 @@ export default function GitHubLoginGate({
               </button>
             )}
             <a className="ss-powered" href="https://github.com/maximhq/bifrost" target="_blank" rel="noreferrer">
-              <Sparkles size={12} />
+              <Rainbow size={13} />
               <span>
                 Powered by <strong>Bifrost</strong>
               </span>
             </a>
-            <button type="button" className="ss-nav-cta" onClick={focusConnect}>
+            <button type="button" className="ss-nav-cta" onClick={openConnect} aria-haspopup="dialog">
               <Github size={14} />
               <span>Connect</span>
               <ArrowRight size={13} className="ss-nav-cta-arrow" />
@@ -330,10 +357,8 @@ export default function GitHubLoginGate({
             <button
               type="button"
               className="ss-mobile-cta"
-              onClick={() => {
-                setMenuOpen(false)
-                focusConnect()
-              }}
+              onClick={openConnect}
+              aria-haspopup="dialog"
             >
               <Github size={15} /> Connect GitHub
             </button>
@@ -341,254 +366,81 @@ export default function GitHubLoginGate({
         )}
       </header>
 
-      {/* ── HERO ────────────────────────────────────────────────── */}
-      <section className="sw-hero">
-        <div className="sw-hero-inner">
+      {/* ── HERO (editorial, monochrome, 3D task ring) ─────────── */}
+      <section className="hb-hero">
+        <span className="hb-hero-grid" aria-hidden="true" />
+        <div className="hb-hero-inner">
+          <span className="hb-eyebrow ss-intro" style={{ '--i': 0 } as React.CSSProperties}>
+            <span className="hb-eyebrow-dot" /> DepShield Agent · Powered by Bifrost
+          </span>
 
-          {/* Top meta row */}
-          <div className="sw-hero-meta">
-            <span className="sw-live-dot" />
-            <span className="sw-hero-meta-text">AUTONOMOUS SECURITY AGENT</span>
-            <span className="sw-hero-meta-sep">×</span>
-            <span className="sw-hero-meta-text">BIFROST BY MAXIM AI</span>
-          </div>
-
-          {/* Giant headline */}
-          <h1 className="sw-hero-title">
-            Autonomous<br />
-            Supply Chain Defense<br />
-            Powered by Bifrost.
+          <h1 className="hb-hero-title">
+            <span className="ss-line"><span className="ss-intro" style={{ '--i': 1 } as React.CSSProperties}>Staff AI on your next release.</span></span>
+            <span className="ss-line"><span className="ss-intro hb-muted" style={{ '--i': 2 } as React.CSSProperties}><em>Meet DepShield.</em></span></span>
           </h1>
 
-          {/* Two column split: description + 3D */}
-          <div className="sw-hero-split">
-            <div className="sw-hero-left">
-              <p className="sw-hero-desc">
-                Powered by <strong>Bifrost by Maxim AI</strong> as the central intelligent gateway.
-                DepShield scans your GitHub repositories for vulnerable packages, reasons through
-                attack surfaces, and writes safe fix plans — without touching a single line of your
-                source code.
-              </p>
+          <p className="hb-hero-sub ss-intro" style={{ '--i': 3 } as React.CSSProperties}>
+            An autonomous security agent that reads only your manifests, checks every pinned package
+            against OSV.dev, and has Bifrost explain what matters, without touching your source code.
+          </p>
 
-              {/* Stats strip */}
-              <div className="sw-hero-stats">
-                <div className="sw-stat">
-                  <span className="sw-stat-num">0</span>
-                  <span className="sw-stat-label">bytes of source<br />code ingested</span>
-                </div>
-                <div className="sw-stat-div" />
-                <div className="sw-stat">
-                  <span className="sw-stat-num">100%</span>
-                  <span className="sw-stat-label">OSV.dev<br />verified findings</span>
-                </div>
-                <div className="sw-stat-div" />
-                <div className="sw-stat">
-                  <span className="sw-stat-num">{telemetryEvents.length}</span>
-                  <span className="sw-stat-label">audit events<br />logged this session</span>
-                </div>
-              </div>
-            </div>
-
-            {/* 3D Shield Visual */}
-            <div className="sw-hero-right">
-              <Audit3DShield />
-            </div>
+          <div className="hb-hero-ctas ss-intro" style={{ '--i': 4 } as React.CSSProperties}>
+            <button type="button" className="hb-btn hb-btn-primary" onClick={openConnect} aria-haspopup="dialog">
+              <Github size={16} /> Connect GitHub <ArrowRight size={15} className="hb-btn-arrow" />
+            </button>
+            <button
+              type="button"
+              className="hb-btn hb-btn-ghost"
+              onClick={() => {
+                setWorkflowTab('cli')
+                scrollTo('sw-workflow')
+              }}
+            >
+              <Terminal size={15} /> Use the CLI
+            </button>
           </div>
+        </div>
 
-          {/* Token connect bar */}
-          <div id="sw-connect" className="sw-connect-bar">
-            <div className="sw-connect-label">
-              <KeyRound size={14} />
-              <span>CONNECT GITHUB TARGET</span>
-              <span className="sw-connect-scope">repo read scope required</span>
-            </div>
-
-            {error && (
-              <div className="sw-error-row">
-                <AlertTriangle size={14} />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleConnect} className="sw-connect-form">
-              <div className="sw-token-row">
-                <input
-                  type={showToken ? 'text' : 'password'}
-                  placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-                  value={tokenInput}
-                  onChange={(e) => setTokenInput(e.target.value)}
-                  className="sw-token-input"
-                  required
-                />
-                <button
-                  type="button"
-                  className="sw-vis-btn"
-                  onClick={() => setShowToken(!showToken)}
-                  title={showToken ? 'Hide token' : 'Show token'}
-                >
-                  {showToken ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-                <button
-                  type="submit"
-                  className="sw-submit-btn"
-                  disabled={loading || !tokenInput.trim()}
-                >
-                  {loading ? (
-                    <><RefreshCw className="animate-spin" size={15} /><span>Connecting…</span></>
-                  ) : (
-                    <><Github size={15} /><span>Start Vulnerability Audit</span><ArrowRight size={13} /></>
-                  )}
-                </button>
-              </div>
-            </form>
-
-            <div className="sw-connect-footer">
-              <Lock size={11} />
-              <span>Token stored in browser memory only — never transmitted externally.</span>
-              <a
-                href="https://github.com/settings/tokens/new?scopes=repo&description=DepShield%20AI%20Agent"
-                target="_blank"
-                rel="noreferrer"
-                className="sw-token-link"
-              >
-                Generate token <ExternalLink size={11} />
-              </a>
-              {onSkipToWorkspace && (
-                <button type="button" className="sw-token-link" onClick={onSkipToWorkspace}>
-                  Neon Workspace →
-                </button>
-              )}
-            </div>
-          </div>
-
+        <div className="hb-hero-ring ss-intro" style={{ '--i': 5 } as React.CSSProperties}>
+          <PromptRing />
+          <p className="hb-ring-hint">Drag to rotate · ← → when focused</p>
         </div>
       </section>
 
-      {/* ── RULE ──────────────────────────────────────────────── */}
-      <div className="sw-rule" />
+      {/* ── SOURCES STRIP ─────────────────────────────────────── */}
+      <div className="ss-marquee hb-marquee" aria-hidden="true">
+        <div className="ss-marquee-track">
+          {[0, 1].map((copy) => (
+            <div className="ss-marquee-group" key={copy}>
+              {MARQUEE_ITEMS.map((item) => (
+                <span className="ss-marquee-item" key={item}>
+                  <span className="ss-marquee-dot" />
+                  {item}
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
 
-      {/* ── CAPABILITIES ──────────────────────────────────────── */}
-      <section id="sw-capabilities" className="sw-section">
+      {/* ── PRODUCT STORY ─────────────────────────────────────── */}
+      <section id="sw-capabilities" className="sw-section hb-section">
         <div className="sw-section-inner">
-
-          <div className="sw-section-head">
-            <span className="sw-section-num">01</span>
-            <div>
-              <h2 className="sw-section-title">Capabilities</h2>
-              <p className="sw-section-sub">
-                Traditional scanners dump raw CVE lists. DepShield reasons through what actually matters.
-              </p>
-            </div>
+          <div className="hb-section-head">
+            <span className="hb-kicker">What it does</span>
+            <h2 className="hb-section-title">
+              A security engineer that never
+              <br />
+              <em>reads your code.</em>
+            </h2>
           </div>
-
-          <div className="ss-filter-row" role="tablist" aria-label="Filter capabilities">
-            {CAP_FILTERS.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                role="tab"
-                aria-selected={capFilter === f.id}
-                className={`ss-filter-pill ${capFilter === f.id ? 'active' : ''}`}
-                onClick={() => setCapFilter(f.id)}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="sw-caps-grid ss-caps-grid">
-            <div className="sw-cap-item ss-card" hidden={!capShown('ai')}>
-              <div className="sw-cap-num">A</div>
-              <div className="sw-cap-body">
-                <span className="sw-cap-label">BIFROST GATEWAY · MAXIM AI</span>
-                <h3 className="sw-cap-title">Autonomous Attack Reasoning</h3>
-                <p className="sw-cap-desc">
-                  When a vulnerability is detected, the Bifrost AI gateway evaluates how an attacker
-                  could exploit it, checks whether the vulnerable code path is reachable in your project,
-                  and writes a non-breaking upgrade plan.
-                </p>
-                <div className="sw-cap-evidence">
-                  <span className="ss-example-tag">Illustrative example</span>
-                  <div className="sw-evidence-row">
-                    <span className="sw-evidence-label">Target</span>
-                    <code className="sw-evidence-val">axios@1.5.0 · CVE-2023-45857 (SSRF)</code>
-                  </div>
-                  <div className="sw-evidence-row">
-                    <span className="sw-evidence-label">Bifrost</span>
-                    <code className="sw-evidence-val sw-evidence-safe">↑ Upgrade to 1.6.0 — 0 breaking changes</code>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="sw-cap-item ss-card" hidden={!capShown('privacy')}>
-              <div className="sw-cap-num">B</div>
-              <div className="sw-cap-body">
-                <span className="sw-cap-label">SANDBOX GUARANTEE</span>
-                <h3 className="sw-cap-title">Zero Source Code Ingestion</h3>
-                <p className="sw-cap-desc">
-                  DepShield reads only manifest files. Your proprietary code is never opened,
-                  read into memory, or uploaded anywhere.
-                </p>
-                <div className="sw-cap-checklist">
-                  <div className="sw-check-row sw-check-allow">
-                    <CheckCircle2 size={13} />
-                    <span><code>package.json</code>, <code>uv.lock</code>, <code>requirements.txt</code></span>
-                  </div>
-                  <div className="sw-check-row sw-check-block">
-                    <XCircle size={13} />
-                    <span><code>.ts</code>, <code>.py</code>, <code>.env</code>, <code>.go</code> — strictly blocked</span>
-                  </div>
-                  <div className="sw-check-row sw-check-metric">
-                    <Lock size={12} />
-                    <strong>0 Bytes Exfiltrated</strong>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="sw-cap-item ss-card" hidden={!capShown('cli')}>
-              <div className="sw-cap-num">C</div>
-              <div className="sw-cap-body">
-                <span className="sw-cap-label">CLI PROTECTION</span>
-                <h3 className="sw-cap-title">Pre-Install Safety Gate</h3>
-                <p className="sw-cap-desc">
-                  Intercepts package additions before they touch your disk. Malicious or vulnerable
-                  packages are blocked before download, with lifecycle scripts disabled.
-                </p>
-                <div className="sw-cap-terminal">
-                  <code>$ depshield add bad-pkg@1.0</code>
-                  <span className="sw-term-err">[BLOCKED] Malicious payload detected</span>
-                  <span className="sw-term-ok">[ENFORCED] Policy verified. No files written.</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="sw-cap-item ss-card" hidden={!capShown('verification')}>
-              <div className="sw-cap-num">D</div>
-              <div className="sw-cap-body">
-                <span className="sw-cap-label">DETERMINISTIC VERIFICATION</span>
-                <h3 className="sw-cap-title">Zero AI Hallucinations</h3>
-                <p className="sw-cap-desc">
-                  AI never guesses or invents CVEs. Every finding originates from authoritative
-                  OSV.dev feeds. Bifrost explains verified evidence — never fabricates advisories.
-                </p>
-                <div className="sw-cap-pills">
-                  <span className="sw-pill">Exact Pinned Versions</span>
-                  <span className="sw-pill">SHA-256 Registry Hashes</span>
-                  <span className="sw-pill">CVSS 3.1 Vectors</span>
-                  <span className="sw-pill">SemVer Safe Ranges</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
+          <FeatureStory />
         </div>
       </section>
 
       <div className="sw-rule" />
 
-      {/* ── BUILT ON (gallery cards) ───────────────────────────── */}
+{/* ── BUILT ON (gallery cards) ───────────────────────────── */}
       <section id="sw-stack" className="sw-section">
         <div className="sw-section-inner">
           <div className="sw-section-head">
@@ -602,7 +454,7 @@ export default function GitHubLoginGate({
           </div>
           <div className="ss-gallery">
             {STACK.map(({ name, tag, desc, icon: Icon, url }) => (
-              <a key={name} href={url} target="_blank" rel="noreferrer" className="ss-gallery-card">
+              <a key={name} href={url} target="_blank" rel="noreferrer" className="ss-gallery-card ss-spot">
                 <span className="ss-gallery-logo"><Icon size={22} /></span>
                 <span className="ss-gallery-text">
                   <span className="ss-gallery-title">
@@ -1040,6 +892,35 @@ export default function GitHubLoginGate({
       </section>
 
       <div className="sw-rule" />
+
+      {/* ── CLOSING CTA: lanyard badge ────────────────────────── */}
+      <section id="hb-cta" className="hb-cta">
+        <div className="hb-cta-inner">
+          <div className="hb-cta-copy">
+            <span className="hb-kicker">Get started</span>
+            <h2 className="hb-cta-title">
+              Add DepShield
+              <br />
+              <em>to your team.</em>
+            </h2>
+            <p className="hb-cta-body">
+              Connect a GitHub token, pick a repository, and get an OSV-grounded audit in minutes. Bring
+              any model through Bifrost, including free ones.
+            </p>
+            <div className="hb-hero-ctas">
+              <button type="button" className="hb-btn hb-btn-primary" onClick={openConnect} aria-haspopup="dialog">
+                <Github size={16} /> Connect GitHub <ArrowRight size={15} className="hb-btn-arrow" />
+              </button>
+              {onSkipToWorkspace && (
+                <button type="button" className="hb-btn hb-btn-ghost" onClick={onSkipToWorkspace}>
+                  <Database size={15} /> Open workspace
+                </button>
+              )}
+            </div>
+          </div>
+          <LanyardBadge theme={theme} />
+        </div>
+      </section>
 
       {/* ── FOOTER ──────────────────────────────────────────── */}
       <footer className="sw-footer">
