@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Check, ChevronDown, Globe, Lock, RefreshCw, Search, Star, X } from 'lucide-react'
 import { listGitHubRepos, type GitHubRepository } from '../api'
+import { getAuditSession, REPOS_STALE_MS } from './auditSession'
 
 const PER_PAGE = 50
 const AUDITABLE = new Set(['javascript', 'typescript', 'python', 'jupyter notebook', 'vue', 'svelte'])
@@ -36,10 +37,14 @@ interface RepoSidebarProps {
 }
 
 export default function RepoSidebar({ token, login, selectedId, onSelect, onError }: RepoSidebarProps) {
-  const [repos, setRepos] = useState<GitHubRepository[]>([])
-  const [page, setPage] = useState(1)
-  const [hasMore, setHasMore] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const session = getAuditSession(token)
+  const cached = session.repos
+  const [repos, setRepos] = useState<GitHubRepository[]>(() => cached?.list ?? [])
+  const [page, setPage] = useState(() => cached?.page ?? 1)
+  const [hasMore, setHasMore] = useState(() => cached?.hasMore ?? false)
+  // Skeleton only when there is nothing to show yet; refreshes happen quietly.
+  const [loading, setLoading] = useState(() => !cached)
+  const [refreshing, setRefreshing] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [reload, setReload] = useState(0)
   const [query, setQuery] = useState('')
@@ -48,17 +53,50 @@ export default function RepoSidebar({ token, login, selectedId, onSelect, onErro
   const listRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    const s = getAuditSession(token)
+    const fresh = s.repos && Date.now() - s.repos.fetchedAt < REPOS_STALE_MS
+    if (reload === 0 && fresh) return // returning to the tab: reuse what we have
+
     let active = true
-    setLoading(true)
-    listGitHubRepos(token, 1, PER_PAGE)
-      .then((list) => {
-        if (!active) return
-        setRepos(list)
-        setPage(1)
-        setHasMore(list.length === PER_PAGE)
+    const quiet = Boolean(s.repos)
+    if (quiet) setRefreshing(true)
+    else setLoading(true)
+    // One shared first-page request writes the cache, even if this mount is gone by then
+    // (React may mount twice); every live mount then reads from the cache.
+    const forced = reload > 0
+    if (!s.reposPending || forced) {
+      const req = listGitHubRepos(token, 1, PER_PAGE).then((first) => {
+        // Keep any extra pages already loaded, refreshed by the new first page.
+        const ids = new Set(first.map((r) => r.id))
+        const extra = (s.repos?.list ?? []).slice(PER_PAGE).filter((r) => !ids.has(r.id))
+        s.repos = {
+          list: [...first, ...extra],
+          page: extra.length ? (s.repos?.page ?? 1) : 1,
+          hasMore: extra.length ? (s.repos?.hasMore ?? false) : first.length === PER_PAGE,
+          fetchedAt: Date.now(),
+        }
+        return first
+      })
+      s.reposPending = req
+      req
+        .finally(() => {
+          if (s.reposPending === req) s.reposPending = null
+        })
+        .catch(() => {})
+    }
+    s.reposPending
+      .then(() => {
+        if (!active || !s.repos) return
+        setRepos(s.repos.list)
+        setPage(s.repos.page)
+        setHasMore(s.repos.hasMore)
       })
       .catch((err) => active && onError(err instanceof Error ? err.message : 'We couldn’t load your repositories.'))
-      .finally(() => active && setLoading(false))
+      .finally(() => {
+        if (!active) return
+        setLoading(false)
+        setRefreshing(false)
+      })
     return () => {
       active = false
     }
@@ -69,12 +107,13 @@ export default function RepoSidebar({ token, login, selectedId, onSelect, onErro
     setLoadingMore(true)
     try {
       const next = await listGitHubRepos(token, page + 1, PER_PAGE)
-      setRepos((cur) => {
-        const seen = new Set(cur.map((r) => r.id))
-        return [...cur, ...next.filter((r) => !seen.has(r.id))]
-      })
-      setPage((p) => p + 1)
-      setHasMore(next.length === PER_PAGE)
+      const seen = new Set(repos.map((r) => r.id))
+      const list = [...repos, ...next.filter((r) => !seen.has(r.id))]
+      const more = next.length === PER_PAGE
+      setRepos(list)
+      setPage(page + 1)
+      setHasMore(more)
+      getAuditSession(token).repos = { list, page: page + 1, hasMore: more, fetchedAt: Date.now() }
     } catch (err) {
       onError(err instanceof Error ? err.message : 'We couldn’t load more repositories.')
     } finally {
@@ -135,11 +174,11 @@ export default function RepoSidebar({ token, login, selectedId, onSelect, onErro
             type="button"
             className="hbd-icon-btn hbr-refresh"
             onClick={() => setReload((n) => n + 1)}
-            disabled={loading}
-            aria-label="Reload repositories"
-            title="Reload from GitHub"
+            disabled={loading || refreshing}
+            aria-label={refreshing ? 'Refreshing repositories' : 'Reload repositories'}
+            title={refreshing ? 'Refreshing from GitHub…' : 'Reload from GitHub'}
           >
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+            <RefreshCw size={13} className={loading || refreshing ? 'animate-spin' : ''} />
           </button>
         </div>
 

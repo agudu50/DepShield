@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   AlertTriangle,
   ArrowRight,
@@ -36,6 +36,7 @@ import {
 import { addTelemetryBatch } from '../telemetry'
 import ModelPicker from './ModelPicker'
 import RepoSidebar from './RepoSidebar'
+import { getAuditSession } from './auditSession'
 import AdvisoryModal, { type AdvisoryTarget } from './AdvisoryModal'
 import RemediationList, { type VulnerablePackage } from './RemediationList'
 import {
@@ -72,13 +73,24 @@ export default function GitHubAgentPanel({
   setReport,
   onManualScan,
 }: GitHubAgentPanelProps) {
-  const [selectedRepo, setSelectedRepo] = useState<GitHubRepository | null>(null)
-  const [manifests, setManifests] = useState<GitHubManifestFile[]>([])
-  const [selectedManifests, setSelectedManifests] = useState<string[]>([])
-  const [runs, setRuns] = useState<ManifestRun[]>([])
-  const [reportView, setReportView] = useState<string>('all')
+  // Restore where you were when coming back to this tab (state survives tab switches).
+  const session = getAuditSession(token)
+  const [selectedRepo, setSelectedRepo] = useState<GitHubRepository | null>(() => session.selectedRepo)
+  const [manifests, setManifests] = useState<GitHubManifestFile[]>(() =>
+    session.selectedRepo ? (session.manifests.get(session.selectedRepo.full_name) ?? []) : [],
+  )
+  const [selectedManifests, setSelectedManifests] = useState<string[]>(() =>
+    session.selectedRepo ? (session.selection.get(session.selectedRepo.full_name) ?? []) : [],
+  )
+  const [runs, setRuns] = useState<ManifestRun[]>(() => session.runs)
+  const [reportView, setReportView] = useState<string>(() => session.reportView)
   const [manifestReload, setManifestReload] = useState(0)
-  const [question, setQuestion] = useState(PRESETS[0].text)
+  const forceRescan = useRef(false)
+  // Which repo the loaded manifests (and so the checkbox selection) belong to.
+  const manifestsFor = useRef<string | null>(
+    session.selectedRepo && session.manifests.has(session.selectedRepo.full_name) ? session.selectedRepo.full_name : null,
+  )
+  const [question, setQuestion] = useState(() => session.question ?? PRESETS[0].text)
 
   const [aiModel, setAiModel] = useState<string | null>(null)
   const [loadingManifests, setLoadingManifests] = useState(false)
@@ -87,7 +99,21 @@ export default function GitHubAgentPanel({
   const [notice, setNotice] = useState('')
 
   // View state: 'launchpad' (manifests & trigger) vs 'report' (results)
-  const [viewMode, setViewMode] = useState<'launchpad' | 'report'>('launchpad')
+  const [viewMode, setViewMode] = useState<'launchpad' | 'report'>(() =>
+    report && session.selectedRepo?.full_name === report.repository ? session.viewMode : 'launchpad',
+  )
+
+  // Write the restorable bits back as they change.
+  useEffect(() => {
+    const s = getAuditSession(token)
+    s.selectedRepo = selectedRepo
+    s.runs = runs
+    s.question = question
+    s.viewMode = viewMode
+    s.reportView = reportView
+    // Only save the selection once it belongs to this repo (not mid-switch).
+    if (selectedRepo && manifestsFor.current === selectedRepo.full_name) s.selection.set(selectedRepo.full_name, selectedManifests)
+  }, [token, selectedRepo, runs, question, viewMode, reportView, selectedManifests])
 
   // Findings table filter & pagination
   const [depFilter, setDepFilter] = useState<'all' | 'vuln' | 'clean'>('vuln')
@@ -106,6 +132,20 @@ export default function GitHubAgentPanel({
       return
     }
 
+    const s = getAuditSession(token)
+    const key = selectedRepo.full_name
+    const cachedManifests = s.manifests.get(key)
+    if (cachedManifests && !forceRescan.current) {
+      // Already discovered this session: no network round-trip.
+      manifestsFor.current = key
+      setManifests(cachedManifests)
+      setSelectedManifests(s.selection.get(key) ?? recommendedSelection(cachedManifests))
+      setLoadingManifests(false)
+      return
+    }
+    forceRescan.current = false
+    manifestsFor.current = null
+
     let active = true
     setLoadingManifests(true)
     setError('')
@@ -114,8 +154,12 @@ export default function GitHubAgentPanel({
     detectGitHubManifests(token, owner, repoName, selectedRepo.default_branch)
       .then((items) => {
         if (!active) return
+        s.manifests.set(key, items)
+        const selection = recommendedSelection(items)
+        s.selection.set(key, selection)
+        manifestsFor.current = key
         setManifests(items)
-        setSelectedManifests(recommendedSelection(items))
+        setSelectedManifests(selection)
       })
       .catch((err) => {
         if (!active) return
@@ -129,6 +173,11 @@ export default function GitHubAgentPanel({
       active = false
     }
   }, [selectedRepo, token, manifestReload])
+
+  function rescanManifests() {
+    forceRescan.current = true
+    setManifestReload((n) => n + 1)
+  }
 
   function toggleManifest(path: string) {
     setSelectedManifests((cur) => (cur.includes(path) ? cur.filter((p) => p !== path) : [...cur, path]))
@@ -644,7 +693,7 @@ export default function GitHubAgentPanel({
                         <button type="button" className="hbd-link" onClick={() => setSelectedManifests([])} disabled={!selectedManifests.length}>Clear</button>
                       </>
                     )}
-                    <button type="button" className="hbd-icon-btn" onClick={() => setManifestReload((n) => n + 1)} disabled={loadingManifests} aria-label="Scan the repository again" title="Scan again">
+                    <button type="button" className="hbd-icon-btn" onClick={() => rescanManifests()} disabled={loadingManifests} aria-label="Scan the repository again" title="Scan again">
                       <RefreshCw size={13} className={loadingManifests ? 'animate-spin' : ''} />
                     </button>
                   </div>
@@ -676,7 +725,7 @@ export default function GitHubAgentPanel({
                       {SUPPORTED_FILES.map((f) => <code key={f}>{f}</code>)}
                     </div>
                     <div className="hb-hero-ctas">
-                      <button type="button" className="hb-btn hb-btn-ghost hbd-btn-sm" onClick={() => setManifestReload((n) => n + 1)}>
+                      <button type="button" className="hb-btn hb-btn-ghost hbd-btn-sm" onClick={() => rescanManifests()}>
                         <RefreshCw size={14} /> Scan again
                       </button>
                       {onManualScan && (
