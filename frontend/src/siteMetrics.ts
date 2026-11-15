@@ -64,11 +64,44 @@ export function startVisitTracking(): () => void {
   }
 }
 
-export async function fetchSiteSummary(): Promise<SiteSummary> {
+/** null = couldn't reach the backend (retry); { available: false } = server says metrics are off. */
+export async function fetchSiteSummary(): Promise<SiteSummary | null> {
   try {
     const res = await fetch(`${api()}/api/v1/metrics/summary`, { signal: AbortSignal.timeout(6000) })
-    return res.ok ? ((await res.json()) as SiteSummary) : { available: false }
+    return res.ok ? ((await res.json()) as SiteSummary) : null
   } catch {
-    return { available: false }
+    return null
+  }
+}
+
+/* ── One shared poller for every metrics view on the page ─────────────── */
+let latest: SiteSummary | null = null
+const subscribers = new Set<(s: SiteSummary | null) => void>()
+let pollTimer: number | undefined
+
+async function poll() {
+  const next = await fetchSiteSummary()
+  // A failed request keeps the last good numbers (or the loading state) instead of hiding.
+  if (next) {
+    latest = next
+    subscribers.forEach((fn) => fn(latest))
+  }
+  // Fresh numbers every 30s; if the backend isn't reachable or ready yet, try again sooner.
+  pollTimer = window.setTimeout(
+    () => (document.visibilityState === 'visible' ? void poll() : schedule()),
+    next?.available ? 30_000 : 10_000,
+  )
+}
+function schedule() {
+  pollTimer = window.setTimeout(() => void poll(), 10_000)
+}
+
+export function subscribeSiteSummary(fn: (s: SiteSummary | null) => void): () => void {
+  subscribers.add(fn)
+  fn(latest)
+  if (subscribers.size === 1) void poll()
+  return () => {
+    subscribers.delete(fn)
+    if (subscribers.size === 0) window.clearTimeout(pollTimer)
   }
 }

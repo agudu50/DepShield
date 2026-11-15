@@ -138,3 +138,4 @@ The backend is configured for deployment as a Python Web Service on Render:
   - `ENVIRONMENT`: `production`
   - `DATABASE_URL`: Your PostgreSQL connection string.
   - `CORS_ORIGINS`: `https://depshield-27ul.onrender.com` (or `*`).
+

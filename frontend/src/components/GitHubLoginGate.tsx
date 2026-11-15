@@ -35,7 +35,7 @@ import FeatureStory from './FeatureStory'
 import LanyardBadge from './LanyardBadge'
 import SourcesStrip from './SourcesStrip'
 import WorkflowSection from './WorkflowSection'
-import SiteMetrics from './SiteMetrics'
+import SiteMetrics, { SiteMetricsInline } from './SiteMetrics'
 import '../landing-seesaw.css'
 import '../landing-3d.css'
 
@@ -389,6 +389,10 @@ export default function GitHubLoginGate({
             >
               <Terminal size={15} /> Use the CLI
             </button>
+          </div>
+
+          <div className="hsm-inline-wrap ss-intro" style={{ '--i': 5 } as React.CSSProperties}>
+            <SiteMetricsInline />
           </div>
         </div>
 
