@@ -76,19 +76,32 @@
   box-shadow: 0 10px 30px -20px rgba(0, 0, 0, 0.6);
 }
 .sw-root .ss-nav-inner {
-  padding: 14px 24px;
-  gap: 16px;
+  max-width: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 14px clamp(20px, 2.5vw, 40px);
+  gap: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   transition: padding 0.25s var(--ss-ease);
 }
-.sw-root .ss-nav.is-scrolled .ss-nav-inner { padding-top: 10px; padding-bottom: 10px; }
+.sw-root .ss-nav.is-scrolled .ss-nav-inner {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
 
 .ss-nav-brand {
+  flex: 1;
+  min-width: fit-content;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
   background: none;
   border: none;
   padding: 0;
   cursor: pointer;
   border-radius: 8px;
-  flex-shrink: 0;
 }
 .ss-nav-brand .sw-nav-logo-img { height: 38px; transition: height 0.25s var(--ss-ease), opacity 0.2s; }
 .ss-nav.is-scrolled .ss-nav-brand .sw-nav-logo-img { height: 32px; }
@@ -103,12 +116,14 @@
   border-radius: 999px;
   border: 1px solid var(--ss-border);
   background: color-mix(in srgb, var(--ss-surface) 80%, transparent);
+  flex-shrink: 0;
+  margin: 0 auto;
 }
 .ss-nav-pill button {
   position: relative;
   z-index: 1;
   height: 32px;
-  padding: 0 14px;
+  padding: 0 16px;
   border: none;
   border-radius: 999px;
   background: transparent;
@@ -133,7 +148,14 @@
   pointer-events: none;
 }
 
-.ss-nav-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.ss-nav-right {
+  flex: 1;
+  min-width: fit-content;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
 
 .ss-nav-icon {
   display: inline-flex;
