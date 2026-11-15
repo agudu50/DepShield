@@ -1,10 +1,8 @@
 import { useCallback, useState, useEffect, useRef } from 'react'
 import {
   Activity,
-  AlertTriangle,
   ArrowRight,
   Boxes,
-  Check,
   CheckCircle2,
   Copy,
   Database,
@@ -14,7 +12,6 @@ import {
   KeyRound,
   Layers,
   Lock,
-  LogOut,
   Menu,
   Moon,
   Package,
@@ -37,6 +34,7 @@ import PromptRing from './PromptRing'
 import FeatureStory from './FeatureStory'
 import LanyardBadge from './LanyardBadge'
 import SourcesStrip from './SourcesStrip'
+import WorkflowSection from './WorkflowSection'
 import '../landing-seesaw.css'
 import '../landing-3d.css'
 
@@ -86,7 +84,6 @@ export default function GitHubLoginGate({
   const [workflowTab, setWorkflowTab] = useState<'web' | 'cli'>('web')
   const [telemetryEvents, setTelemetryEvents] = useState<TelemetryEvent[]>(() => getStoredEvents())
   const [isSimulating, setIsSimulating] = useState(false)
-  const [copiedText, setCopiedText] = useState<string | null>(null)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
@@ -199,9 +196,7 @@ export default function GitHubLoginGate({
 
 
   function copyCommand(cmd: string) {
-    navigator.clipboard.writeText(cmd)
-    setCopiedText(cmd)
-    setTimeout(() => setCopiedText(null), 2000)
+    void navigator.clipboard?.writeText(cmd).catch(() => {})
   }
 
   function scrollTo(id: string) {
@@ -455,303 +450,7 @@ export default function GitHubLoginGate({
       <div className="sw-rule" />
 
       {/* ── WORKFLOW ──────────────────────────────────────────── */}
-      <section id="sw-workflow" className="sw-section">
-        <div className="sw-section-inner">
-
-          <div className="sw-section-head">
-            <span className="sw-section-num">02</span>
-            <div>
-              <h2 className="sw-section-title">Workflow</h2>
-              <p className="sw-section-sub">
-                Use the web dashboard or run everything from your terminal. Both stream live telemetry.
-              </p>
-            </div>
-          </div>
-
-          <div className="sw-workflow-tabs">
-            <button
-              type="button"
-              className={`sw-tab-btn ${workflowTab === 'web' ? 'sw-tab-active' : ''}`}
-              onClick={() => setWorkflowTab('web')}
-            >
-              <Globe size={14} /> Web Dashboard
-            </button>
-            <button
-              type="button"
-              className={`sw-tab-btn ${workflowTab === 'cli' ? 'sw-tab-active' : ''}`}
-              onClick={() => setWorkflowTab('cli')}
-            >
-              <Terminal size={14} /> Developer CLI
-            </button>
-          </div>
-
-          {workflowTab === 'web' && (
-            <div className="sw-steps">
-              {[
-                {
-                  n: '01',
-                  title: 'Connect Your GitHub Token',
-                  desc: 'Paste a token with read-only repo access. It stays in browser memory and never leaves your device.',
-                },
-                {
-                  n: '02',
-                  title: 'Pick a Repository to Scan',
-                  desc: 'DepShield finds dependency files automatically. It ignores all source code files entirely.',
-                },
-                {
-                  n: '03',
-                  title: 'The Agent Runs the Audit',
-                  desc: 'Bifrost checks every package against OSV.dev, reasons through attack paths, and writes safe upgrade plans.',
-                },
-                {
-                  n: '04',
-                  title: 'Monitor the Audit Live',
-                  desc: 'The real-time telemetry stream shows every file touched, every query made, and every byte transmitted — proving nothing was stolen.',
-                },
-              ].map((step) => (
-                <div key={step.n} className="sw-step">
-                  <span className="sw-step-num">{step.n}</span>
-                  <div className="sw-step-body">
-                    <h4 className="sw-step-title">{step.title}</h4>
-                    <p className="sw-step-desc">{step.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {workflowTab === 'cli' && (
-            <div className="sw-cli-wrap">
-              <div className="sw-cli-install-box">
-                <div className="sw-cli-install-head">
-                  <div className="sw-cli-install-title">
-                    <Terminal size={14} className="text-emerald" />
-                    <span>Prerequisite: One-Time CLI Installation</span>
-                  </div>
-                  <span className="sw-cli-install-badge">Requires DepShield Repository</span>
-                </div>
-
-                <div className="sw-cli-requirement-callout">
-                  <AlertTriangle size={15} className="text-amber" />
-                  <div>
-                    <strong>Prerequisite:</strong> DepShield is not yet published to the public PyPI package index. To use the <code>depshield</code> command on your machine, you must first clone the repository or install directly from GitHub source. Once installed, it is globally available in any directory.
-                  </div>
-                </div>
-
-                <div className="sw-cli-why-box">
-                  <span className="sw-cli-step-tag">Why clone the repository first?</span>
-                  <div className="sw-cli-why-grid">
-                    <div className="sw-cli-why-item">
-                      <ShieldCheck size={14} className="text-emerald shrink-0" />
-                      <div>
-                        <strong>Not on PyPI Yet (Direct Source)</strong>
-                        <p>DepShield is currently distributed directly via its open-source GitHub repository. Cloning provides the package locally so you can install and run it without waiting for public PyPI distribution.</p>
-                      </div>
-                    </div>
-                    <div className="sw-cli-why-item">
-                      <Terminal size={14} className="text-emerald shrink-0" />
-                      <div>
-                        <strong>Ready-to-Use Launchers</strong>
-                        <p>The repository includes pre-configured PowerShell, Bash, and CMD launchers in <code>bin/</code> and automated installers that set up your PATH without requiring administrative privileges.</p>
-                      </div>
-                    </div>
-                    <div className="sw-cli-why-item">
-                      <CheckCircle2 size={14} className="text-emerald shrink-0" />
-                      <div>
-                        <strong>Full Auditability &amp; Clean Teardown</strong>
-                        <p>You can inspect manifest-only parsers and run local tests before auditing projects, plus run <code>.\uninstall-cli.ps1</code> or <code>./uninstall-cli.sh</code> to wipe all files in seconds.</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="sw-cli-clone-step">
-                  <span className="sw-cli-step-tag">Step 1: Clone repository & enter directory</span>
-                  <div className="sw-code-line">
-                    <code>git clone https://github.com/agudu50/DepShield.git &amp;&amp; cd DepShield</code>
-                    <button
-                      type="button"
-                      className="sw-copy-btn"
-                      onClick={() => copyCommand('git clone https://github.com/agudu50/DepShield.git && cd DepShield')}
-                      title="Copy command"
-                    >
-                      {copiedText === 'git clone https://github.com/agudu50/DepShield.git && cd DepShield' ? <Check size={12} /> : <Copy size={12} />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="sw-cli-install-options">
-                  <span className="sw-cli-step-tag">Step 2: Run one-line installer inside DepShield</span>
-                  <div className="sw-cli-install-grid">
-                    <div className="sw-cli-install-col">
-                      <span className="sw-cli-install-os">Windows PowerShell</span>
-                      <div className="sw-code-line">
-                        <code>.\install-cli.ps1</code>
-                        <button
-                          type="button"
-                          className="sw-copy-btn"
-                          onClick={() => copyCommand('.\\install-cli.ps1')}
-                          title="Copy command"
-                        >
-                          {copiedText === '.\\install-cli.ps1' ? <Check size={12} /> : <Copy size={12} />}
-                        </button>
-                      </div>
-                    </div>
-                    <div className="sw-cli-install-col">
-                      <span className="sw-cli-install-os">macOS &amp; Linux</span>
-                      <div className="sw-code-line">
-                        <code>./install-cli.sh</code>
-                        <button
-                          type="button"
-                          className="sw-copy-btn"
-                          onClick={() => copyCommand('./install-cli.sh')}
-                          title="Copy command"
-                        >
-                          {copiedText === './install-cli.sh' ? <Check size={12} /> : <Copy size={12} />}
-                        </button>
-                      </div>
-                    </div>
-                    <div className="sw-cli-install-col">
-                      <span className="sw-cli-install-os">Universal (pip / pipx)</span>
-                      <div className="sw-code-line">
-                        <code>pip install -e ./cli</code>
-                        <button
-                          type="button"
-                          className="sw-copy-btn"
-                          onClick={() => copyCommand('pip install -e ./cli')}
-                          title="Copy command"
-                        >
-                          {copiedText === 'pip install -e ./cli' ? <Check size={12} /> : <Copy size={12} />}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="sw-cli-direct-option">
-                  <span className="sw-cli-step-tag">Alternative: Install directly from GitHub (zero cloning)</span>
-                  <div className="sw-code-line">
-                    <code>pip install &quot;git+https://github.com/agudu50/DepShield.git#subdirectory=cli&quot;</code>
-                    <button
-                      type="button"
-                      className="sw-copy-btn"
-                      onClick={() => copyCommand('pip install "git+https://github.com/agudu50/DepShield.git#subdirectory=cli"')}
-                      title="Copy command"
-                    >
-                      {copiedText === 'pip install "git+https://github.com/agudu50/DepShield.git#subdirectory=cli"' ? <Check size={12} /> : <Copy size={12} />}
-                    </button>
-                  </div>
-                </div>
-
-                <p className="sw-cli-install-note">
-                  Once installed, you can open any folder or project on your computer (e.g. <code>C:\Testing</code>) and run <code>depshield</code> commands immediately.
-                </p>
-              </div>
-
-              <div className="sw-steps">
-                {[
-                  {
-                    n: '01',
-                    title: 'Authenticate GitHub',
-                    desc: 'Store your GitHub credentials safely in your OS keyring:',
-                    cmd: 'depshield github login --token <PAT>',
-                  },
-                  {
-                    n: '02',
-                    title: 'Safe Preflight Installs',
-                    desc: 'Check packages against OSV before they hit your disk:',
-                    cmd: 'depshield add express@4.18.2',
-                  },
-                  {
-                    n: '03',
-                    title: 'Start Foreground Monitor',
-                    desc: 'Stream live telemetry events to the web dashboard:',
-                    cmd: 'depshield monitor',
-                  },
-                  {
-                    n: '04',
-                    title: 'Autonomous Vulnerability Audit',
-                    desc: 'Audit repository dependency trees from your terminal:',
-                    cmd: 'depshield github analyze owner/repo',
-                  },
-                ].map((step) => (
-                  <div key={step.n} className="sw-step">
-                    <span className="sw-step-num">{step.n}</span>
-                    <div className="sw-step-body">
-                      <h4 className="sw-step-title">{step.title}</h4>
-                      <p className="sw-step-desc">{step.desc}</p>
-                      <div className="sw-code-line">
-                        <code>{step.cmd}</code>
-                        <button
-                          type="button"
-                          className="sw-copy-btn"
-                          onClick={() => copyCommand(step.cmd)}
-                        >
-                          {copiedText === step.cmd ? <Check size={12} /> : <Copy size={12} />}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="sw-cli-uninstall-box">
-                <div className="sw-cli-uninstall-head">
-                  <div className="sw-cli-uninstall-title">
-                    <LogOut size={14} className="text-zinc-400" />
-                    <span>Done Using the CLI? Stop, Log Out &amp; Uninstall</span>
-                  </div>
-                  <span className="sw-cli-uninstall-badge">Clean Teardown</span>
-                </div>
-                <div className="sw-cli-uninstall-grid">
-                  <div className="sw-cli-uninstall-col">
-                    <span className="sw-cli-step-tag">01 Stop Active Commands</span>
-                    <p className="sw-cli-uninstall-desc">
-                      Press <code>Ctrl + C</code> in your terminal to terminate <code>depshield monitor</code>. Single-run audits (<code>analyze</code>, <code>add</code>) exit automatically when finished.
-                    </p>
-                  </div>
-                  <div className="sw-cli-uninstall-col">
-                    <span className="sw-cli-step-tag">02 Log Out &amp; Purge Tokens</span>
-                    <p className="sw-cli-uninstall-desc">
-                      Remove GitHub credentials and web sessions from your native OS secure keychain:
-                    </p>
-                    <div className="sw-code-line">
-                      <code>depshield github logout</code>
-                      <button
-                        type="button"
-                        className="sw-copy-btn"
-                        onClick={() => copyCommand('depshield github logout')}
-                        title="Copy command"
-                      >
-                        {copiedText === 'depshield github logout' ? <Check size={12} /> : <Copy size={12} />}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="sw-cli-uninstall-col">
-                    <span className="sw-cli-step-tag">03 Complete Clean Removal</span>
-                    <p className="sw-cli-uninstall-desc">
-                      Run the bundled uninstaller to wipe PATH entries, shims, and package files:
-                    </p>
-                    <div className="sw-code-line">
-                      <code>.\uninstall-cli.ps1</code>
-                      <button
-                        type="button"
-                        className="sw-copy-btn"
-                        onClick={() => copyCommand('.\\uninstall-cli.ps1')}
-                        title="Copy command"
-                      >
-                        {copiedText === '.\\uninstall-cli.ps1' ? <Check size={12} /> : <Copy size={12} />}
-                      </button>
-                    </div>
-                    <span className="sw-cli-subnote">macOS/Linux: <code>./uninstall-cli.sh</code> | Pip: <code>pip uninstall depshield</code></span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-        </div>
-      </section>
+      <WorkflowSection tab={workflowTab} onTab={setWorkflowTab} onConnect={openConnect} />
 
       <div className="sw-rule" />
 
