@@ -11,6 +11,7 @@ from app.api.routes.health import router as health_router
 from app.api.routes.agent import router as agent_router
 from app.api.routes.scans import router as scans_router
 from app.api.routes.github import router as github_router
+from app.api.routes.metrics import router as metrics_router
 from app.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -67,6 +68,7 @@ app.include_router(organizations_router)
 app.include_router(members_router)
 app.include_router(agent_router)
 app.include_router(github_router)
+app.include_router(metrics_router)
 
 
 @app.get("/")

@@ -5,10 +5,12 @@ from typing import Any, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Header, HTTPException, Query
+from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
 
 from app.agents.bifrost import BifrostClient, ModelNotAllowedError, make_bifrost_client
 from app.config import get_settings
+from app.site_metrics import record_audit_best_effort
 from app.domain.github.service import (
     GitHubError,
     GitHubManifestFile,
@@ -100,6 +102,16 @@ async def analyze_repository(
             question=request.question,
             bifrost=bifrost,
         )
+        # Public aggregate counters; best-effort and off the event loop. Never from tests,
+        # whose settings may still point at a real database.
+        if settings.environment != "test":
+            await run_in_threadpool(
+                record_audit_best_effort,
+                settings.database_url.get_secret_value(),
+                manifests=1,
+                packages=report.checked_count,
+                advisories=report.vulnerability_count,
+            )
         return {
             "repository": report.repository,
             "branch": report.branch,

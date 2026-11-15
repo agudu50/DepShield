@@ -36,6 +36,7 @@ import FindingsPanel from './components/dashboard/FindingsPanel'
 import ReportsPanel from './components/dashboard/ReportsPanel'
 import { exportFindingsCsv, exportJson, type Finding } from './components/dashboard/exporters'
 import { getAuditRun, subscribeAuditRun, type AuditRunState } from './components/auditSession'
+import { startVisitTracking } from './siteMetrics'
 import WorkspacePanel from './WorkspacePanel'
 import { addTelemetryBatch } from './telemetry'
 import './App.css'
@@ -106,6 +107,9 @@ export default function App() {
   }, [theme])
 
   const toggleTheme = useCallback(() => setTheme((t) => (t === 'dark' ? 'light' : 'dark')), [])
+
+  // Anonymous public visit metrics (random browser ID only; respects Do Not Track / GPC).
+  useEffect(() => startVisitTracking(), [])
 
   // Tabs live in the URL hash, so reload, deep links and Back/Forward all work.
   const [activeTab, setActiveTabState] = useState<DashboardTab>(readHashTab)

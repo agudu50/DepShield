@@ -35,6 +35,7 @@ import FeatureStory from './FeatureStory'
 import LanyardBadge from './LanyardBadge'
 import SourcesStrip from './SourcesStrip'
 import WorkflowSection from './WorkflowSection'
+import SiteMetrics from './SiteMetrics'
 import '../landing-seesaw.css'
 import '../landing-3d.css'
 
@@ -399,6 +400,9 @@ export default function GitHubLoginGate({
 
       {/* ── SOURCES STRIP ─────────────────────────────────────── */}
       <SourcesStrip />
+
+      {/* ── PUBLIC METRICS ────────────────────────────────────── */}
+      <SiteMetrics />
 
       {/* ── PRODUCT STORY ─────────────────────────────────────── */}
       <section id="sw-capabilities" className="sw-section hb-section">
