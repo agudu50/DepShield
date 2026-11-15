@@ -19,6 +19,7 @@ class BifrostClientTests(unittest.TestCase):
         def respond(request: httpx.Request) -> httpx.Response:
             captured["url"] = str(request.url)
             captured["authorization"] = request.headers.get("Authorization")
+            captured["virtual_key"] = request.headers.get("x-bf-vk")
             captured["payload"] = request.read().decode("utf-8")
             return httpx.Response(
                 200,
@@ -44,7 +45,8 @@ class BifrostClientTests(unittest.TestCase):
         )
 
         self.assertEqual(captured["url"], "http://bifrost.test/openai/chat/completions")
-        self.assertEqual(captured["authorization"], "Bearer server-side-test-key")
+        self.assertEqual(captured["virtual_key"], "server-side-test-key")
+        self.assertIsNone(captured["authorization"])  # the key must not leak into Authorization
         self.assertIn("GHSA-test", captured["payload"])
         self.assertEqual(reply.answer, "Evidence-backed explanation.")
         self.assertEqual(reply.usage["total_tokens"], 20)

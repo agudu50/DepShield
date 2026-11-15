@@ -158,7 +158,9 @@ class BifrostClient:
     async def _complete(self, payload: dict[str, Any], timeout: float) -> BifrostReply:
         headers = {}
         if self._virtual_key:
-            headers["Authorization"] = f"Bearer {self._virtual_key}"
+            # Bifrost's dedicated virtual-key header. Unlike `Authorization: Bearer`, it works
+            # whether or not gateway auth is enabled, and for legacy keys without `sk-bf-`.
+            headers["x-bf-vk"] = self._virtual_key
 
         try:
             async with httpx.AsyncClient(
