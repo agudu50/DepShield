@@ -9,7 +9,18 @@
 
 ### An Agent Powered by Bifrost by Maxim AI
 
-**Live Web Application:** [https://depshield-27ul.onrender.com](https://depshield-27ul.onrender.com)
+---
+
+## Deployed Services & Live Links
+
+| Resource | Platform / Host | Link |
+| :--- | :--- | :--- |
+| **Production Web Dashboard** | Render Static Site | [https://depshield-27ul.onrender.com](https://depshield-27ul.onrender.com) |
+| **GitHub Source Repository** | GitHub | [https://github.com/agudu50/DepShield](https://github.com/agudu50/DepShield) |
+| **Backend API Health Probe** | Render Web Service | `https://<your-backend-slug>.onrender.com/health` |
+| **Backend OpenAPI Docs** | Swagger UI | `https://<your-backend-slug>.onrender.com/docs` |
+| **Vulnerability Data Feed** | Google OSV.dev | [https://osv.dev](https://osv.dev) |
+| **AI Gateway & Reasoning** | Maxim AI Bifrost | [https://github.com/maximhq/bifrost](https://github.com/maximhq/bifrost) |
 
 ---
 
@@ -197,7 +208,7 @@ The web dashboard will start at **`http://localhost:5173`**.
 
 ### Option A: Using the Web App
 
-1. **Open the Dashboard**: Visit `http://localhost:5173` in your browser.
+1. **Open the Dashboard**: Visit [https://depshield-27ul.onrender.com](https://depshield-27ul.onrender.com) (or `http://localhost:5173` if running locally).
 2. **Connect with GitHub**: Enter a GitHub Personal Access Token (with read-only `repo` permission). Your token is stored safely in your browser only.
 3. **Choose Your Target**: Search and select any repository from your account.
 4. **Run Autonomous Vulnerability Audit**:

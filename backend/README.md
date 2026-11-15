@@ -6,6 +6,17 @@ The backend exposes REST endpoints for GitHub repository inspection, dependency 
 
 ---
 
+## Deployed Services & Live Links
+
+- **Production Frontend:** [https://depshield-27ul.onrender.com](https://depshield-27ul.onrender.com)
+- **GitHub Repository:** [https://github.com/agudu50/DepShield](https://github.com/agudu50/DepShield)
+- **Live Health Endpoint:** `https://<your-backend-slug>.onrender.com/health`
+- **Interactive OpenAPI Documentation:** `https://<your-backend-slug>.onrender.com/docs`
+- **OSV.dev Vulnerability Feeds:** [https://osv.dev](https://osv.dev)
+- **Maxim AI Bifrost Gateway:** [https://github.com/maximhq/bifrost](https://github.com/maximhq/bifrost)
+
+---
+
 ## Architecture Overview
 
 ```

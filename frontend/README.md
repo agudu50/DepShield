@@ -2,9 +2,15 @@
 
 DepShield frontend is a React 19 + TypeScript single-page application built on Vite and styled with a modern, flat, Seesaw-inspired developer tool design system (zero gradients, clean solid surfaces, high contrast, and crisp information density).
 
-Live Demo: https://depshield-27ul.onrender.com
-
 The dashboard connects to the DepShield FastAPI backend to audit dependency manifests, query authoritative OSV.dev advisories, and present evidence-grounded AI investigations from the Bifrost gateway.
+
+---
+
+## Deployed Application & Live Links
+
+- **Production URL:** [https://depshield-27ul.onrender.com](https://depshield-27ul.onrender.com)
+- **Deployment Target:** Render (Static Site)
+- **GitHub Repository:** [https://github.com/agudu50/DepShield](https://github.com/agudu50/DepShield)
 
 ---
 
