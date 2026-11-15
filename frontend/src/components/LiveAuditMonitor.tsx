@@ -166,14 +166,52 @@ export default function LiveAuditMonitor({ notify }: { notify?: (message: string
     return c
   }, [events])
 
+  const projectCounts = useMemo(() => {
+    const c: Record<string, number> = {}
+    for (const e of events) {
+      const proj = e.project ?? parseEventTarget(e.target).project
+      if (proj) {
+        c[proj] = (c[proj] ?? 0) + 1
+      }
+    }
+    return c
+  }, [events])
+
+  const projectList = useMemo(() => Object.keys(projectCounts).sort(), [projectCounts])
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return events.filter((e) => {
+    const list = events.filter((e) => {
       if (filter !== 'all' && e.category !== filter) return false
+      const proj = e.project ?? parseEventTarget(e.target).project
+      if (projectFilter !== 'all' && proj !== projectFilter) return false
       if (!q) return true
-      return [e.action, e.target, e.details, e.source].some((v) => v.toLowerCase().includes(q))
+      return [e.action, e.target, e.details, e.source, proj ?? ''].some((v) =>
+        v.toLowerCase().includes(q),
+      )
     })
-  }, [events, filter, search])
+
+    return [...list].sort((a, b) => {
+      if (sortOrder === 'oldest') {
+        return (a.at ?? 0) - (b.at ?? 0)
+      }
+      if (sortOrder === 'project') {
+        const pA = a.project ?? parseEventTarget(a.target).project ?? a.target
+        const pB = b.project ?? parseEventTarget(b.target).project ?? b.target
+        const cmp = pA.localeCompare(pB)
+        if (cmp !== 0) return cmp
+        return (b.at ?? 0) - (a.at ?? 0)
+      }
+      if (sortOrder === 'risk') {
+        const weight: Record<string, number> = { blocked: 3, warning: 2, info: 1, safe: 0 }
+        const wA = weight[a.verdict] ?? 0
+        const wB = weight[b.verdict] ?? 0
+        if (wB !== wA) return wB - wA
+        return (b.at ?? 0) - (a.at ?? 0)
+      }
+      return (b.at ?? 0) - (a.at ?? 0)
+    })
+  }, [events, filter, projectFilter, search, sortOrder])
 
   const flagged = events.filter((e) => e.verdict === 'warning' || e.verdict === 'blocked').length
   const egress = events.reduce((sum, e) => sum + e.bytesSent, 0)
@@ -307,7 +345,7 @@ export default function LiveAuditMonitor({ notify }: { notify?: (message: string
         {/* Timeline */}
         <section className="hbd-panel hbl-feed" aria-label="Audit events">
           <div className="hbl-toolbar">
-            <div className="hbl-filters" role="tablist" aria-label="Filter events">
+            <div className="hbl-filters" role="tablist" aria-label="Filter events by category">
               <button type="button" role="tab" aria-selected={filter === 'all'} className={filter === 'all' ? 'active' : ''} onClick={() => setFilter('all')}>
                 All <b>{events.length}</b>
               </button>
@@ -324,23 +362,81 @@ export default function LiveAuditMonitor({ notify }: { notify?: (message: string
                 </button>
               ))}
             </div>
-            <div className="hbd-search hbl-search">
-              <Search size={15} />
-              <input
-                ref={searchRef}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search action, target or details"
-                aria-label="Search events"
-              />
-              {search ? (
-                <button type="button" className="hbd-icon-btn" onClick={() => setSearch('')} aria-label="Clear search">
-                  <X size={12} />
-                </button>
-              ) : (
-                <kbd className="hbl-kbd">/</kbd>
-              )}
+
+            <div className="hbl-controls-row">
+              <div className="hbd-search hbl-search">
+                <Search size={15} />
+                <input
+                  ref={searchRef}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search action, target, project or details"
+                  aria-label="Search events"
+                />
+                {search ? (
+                  <button type="button" className="hbd-icon-btn" onClick={() => setSearch('')} aria-label="Clear search">
+                    <X size={12} />
+                  </button>
+                ) : (
+                  <kbd className="hbl-kbd">/</kbd>
+                )}
+              </div>
+
+              <div className="hbl-sort-wrap">
+                <label htmlFor="hbl-sort-select" className="hbl-sort-label">
+                  <ArrowUpDown size={13} />
+                  <span>Sort:</span>
+                </label>
+                <select
+                  id="hbl-sort-select"
+                  className="hbl-sort-select"
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+                  aria-label="Sort events"
+                >
+                  <option value="newest">Newest first</option>
+                  <option value="oldest">Oldest first</option>
+                  <option value="project">Project (A–Z)</option>
+                  <option value="risk">Risk / Warnings</option>
+                </select>
+              </div>
             </div>
+
+            {projectList.length > 0 && (
+              <div className="hbl-project-pills" role="region" aria-label="Filter by project">
+                <span className="hbl-project-pills-label">
+                  <FolderGit2 size={13} /> Projects:
+                </span>
+                <button
+                  type="button"
+                  className={`hbl-proj-pill ${projectFilter === 'all' ? 'active' : ''}`}
+                  onClick={() => setProjectFilter('all')}
+                >
+                  All projects <b>{events.length}</b>
+                </button>
+                {projectList.map((proj) => (
+                  <button
+                    key={proj}
+                    type="button"
+                    className={`hbl-proj-pill ${projectFilter === proj ? 'active' : ''}`}
+                    onClick={() => setProjectFilter(projectFilter === proj ? 'all' : proj)}
+                    title={`Filter stream to ${proj}`}
+                  >
+                    <span>{proj}</span>
+                    <b>{projectCounts[proj]}</b>
+                  </button>
+                ))}
+                {projectFilter !== 'all' && (
+                  <button
+                    type="button"
+                    className="hbd-link hbl-proj-reset"
+                    onClick={() => setProjectFilter('all')}
+                  >
+                    Reset project
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {events.length === 0 ? (
@@ -358,8 +454,21 @@ export default function LiveAuditMonitor({ notify }: { notify?: (message: string
             </div>
           ) : filtered.length === 0 ? (
             <div className="hbl-noresults">
-              <p>No events match{search ? ` “${search}”` : ' this filter'}.</p>
-              <button type="button" className="hbd-link" onClick={() => { setFilter('all'); setSearch('') }}>
+              <p>
+                No events match
+                {projectFilter !== 'all' ? ` project “${projectFilter}”` : ''}
+                {search ? ` query “${search}”` : ''}
+                {filter !== 'all' ? ` in ${filter}` : ''}.
+              </p>
+              <button
+                type="button"
+                className="hbd-link"
+                onClick={() => {
+                  setFilter('all')
+                  setProjectFilter('all')
+                  setSearch('')
+                }}
+              >
                 Show everything
               </button>
             </div>
@@ -368,6 +477,9 @@ export default function LiveAuditMonitor({ notify }: { notify?: (message: string
               {filtered.map((e, i) => {
                 const Icon = SOURCE_ICON[e.source]
                 const isNew = newIds.has(e.id)
+                const parsed = parseEventTarget(e.target)
+                const proj = e.project ?? parsed.project
+
                 return (
                   <li
                     key={e.id}
@@ -388,14 +500,73 @@ export default function LiveAuditMonitor({ notify }: { notify?: (message: string
                           {relTime(e.at, now) ?? e.timestamp}
                         </time>
                       </div>
-                      <code className="hbl-target">{e.target}</code>
+
+                      {proj ? (
+                        <div className="hbl-target-box">
+                          <div className="hbl-target-row">
+                            <button
+                              type="button"
+                              className={`hbl-target-project-chip ${projectFilter === proj ? 'is-active' : ''}`}
+                              onClick={() => setProjectFilter(projectFilter === proj ? 'all' : proj)}
+                              title={`Click to filter stream by ${proj}`}
+                            >
+                              <FolderGit2 size={12} />
+                              <span>{proj}</span>
+                            </button>
+                            {parsed.isRepo && (
+                              <a
+                                href={`https://github.com/${proj}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="hbl-target-extlink"
+                                title={`Open ${proj} on GitHub`}
+                              >
+                                <ExternalLink size={11} />
+                              </a>
+                            )}
+                            {parsed.subpath && (
+                              <code className="hbl-target-path">/{parsed.subpath}</code>
+                            )}
+                            {parsed.suffix && (
+                              <span className="hbl-target-suffix">{parsed.suffix}</span>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <code className="hbl-target">{e.target}</code>
+                      )}
+
                       <p className="hbl-details">{e.details}</p>
+
                       <div className="hbl-meta">
                         <span>{e.source}</span>
                         <span>sent {formatBytes(e.bytesSent)}</span>
                         <span>source read {formatBytes(e.sourceCodeRead)}</span>
                         <span className="hbl-meta-ts">{e.timestamp}</span>
                       </div>
+
+                      {e.action === 'AUDIT_COMPLETE' && proj && (
+                        <div className="hbl-card-actions">
+                          <button
+                            type="button"
+                            className="hbl-card-action-btn"
+                            onClick={() => setProjectFilter(proj)}
+                            title={`Filter stream to ${proj}`}
+                          >
+                            <Filter size={11} /> Filter to {proj}
+                          </button>
+                          {parsed.isRepo && (
+                            <a
+                              href={`https://github.com/${proj}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="hbl-card-action-btn"
+                            >
+                              <ExternalLink size={11} /> Open repository
+                            </a>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </li>
                 )

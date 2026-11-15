@@ -15,7 +15,6 @@ import {
   ShieldAlert,
   ShieldCheck,
   Sun,
-  Users,
 } from 'lucide-react'
 import {
   getGitHubUser,
@@ -65,15 +64,17 @@ const npmLockExample = JSON.stringify(
 )
 const pythonLockExample = '[[package]]\nname = "requests"\nversion = "2.31.0"\n\n[[package]]\nname = "jinja2"\nversion = "2.11.3"'
 
-type DashboardTab = 'agent' | 'findings' | 'telemetry' | 'scanner' | 'workspace' | 'reports'
-const TAB_IDS: DashboardTab[] = ['agent', 'findings', 'telemetry', 'scanner', 'workspace', 'reports']
+type DashboardTab = 'agent' | 'findings' | 'telemetry' | 'scanner' | 'reports'
+const TAB_IDS: DashboardTab[] = ['agent', 'findings', 'telemetry', 'scanner', 'reports']
+
+// `depshield login` opens the dashboard with ?depshield_callback=… to approve the CLI.
+const CLI_AUTH_REQUEST = new URLSearchParams(window.location.search).has('depshield_callback')
 
 const TAB_META: Record<DashboardTab, { title: string; em: string; sub: string }> = {
   agent: { title: 'Audit a', em: 'repository.', sub: 'Pick a repository and DepShield checks every pinned dependency against OSV.dev.' },
   findings: { title: 'Your', em: 'findings.', sub: 'Every advisory matched to an exact version in your latest audit or scan.' },
   telemetry: { title: 'Live audit', em: 'stream.', sub: 'Every file your audits read and every lookup they send from this browser, newest first.' },
   scanner: { title: 'Manual', em: 'scan.', sub: 'Paste a manifest or lockfile to check it without connecting a repository. Nothing is stored.' },
-  workspace: { title: 'Team', em: 'workspace.', sub: 'Organizations, projects, members and saved scans.' },
   reports: { title: 'Security', em: 'report.', sub: 'A shareable summary of your latest audit. Print it or export it as JSON.' },
 }
 
@@ -315,7 +316,6 @@ export default function App() {
     },
     { id: 'telemetry', label: 'Live stream', icon: <Activity size={14} />, badge: { text: 'Live', tone: 'live' } },
     { id: 'scanner', label: 'Manual scan', icon: <FileCode size={14} /> },
-    { id: 'workspace', label: 'Workspace', icon: <Users size={14} /> },
     { id: 'reports', label: 'Report', icon: <BarChart3 size={14} /> },
   ]
 
@@ -376,7 +376,7 @@ export default function App() {
   }
 
   // Screen 1: NOT LOGGED IN -> landing page
-  if (!user && !showWorkspaceOnly) {
+  if (!user && !showWorkspaceOnly && !CLI_AUTH_REQUEST) {
     return (
       <GitHubLoginGate
         onLoginSuccess={handleLoginSuccess}
@@ -408,10 +408,27 @@ export default function App() {
       />
 
       <main className="main-panel hbd-main">
+        {CLI_AUTH_REQUEST ? (
+          <>
+            <header className="hbd-page-head">
+              <span className="hb-kicker">DepShield CLI</span>
+              <h1 className="hbd-page-title">
+                Authorize the <em>CLI.</em>
+              </h1>
+              <p className="hbd-page-sub">
+                Your terminal is waiting for approval. Sign in, then approve it; the token goes only to your local CLI.
+              </p>
+            </header>
+            <div className="workspace-tab-wrap">
+              <WorkspacePanel />
+            </div>
+          </>
+        ) : (
+          <>
         <header className="hbd-page-head" key={activeTab}>
           <span className="hb-kicker">
             <span className="hb-kicker-n">{String(TAB_IDS.indexOf(activeTab) + 1).padStart(2, '0')}</span>
-            {sourceName && activeTab !== 'workspace' ? ` Latest: ${sourceName}` : ' DepShield'}
+            {sourceName ? ` Latest: ${sourceName}` : ' DepShield'}
           </span>
           <h1 className="hbd-page-title">
             {meta.title} <em>{meta.em}</em>
@@ -419,7 +436,7 @@ export default function App() {
           <p className="hbd-page-sub">{meta.sub}</p>
         </header>
 
-        {activeTab !== 'workspace' && activeTab !== 'telemetry' && (
+        {activeTab !== 'telemetry' && (
           <StatCards
             stats={[
               { label: 'Public repositories', value: user ? user.public_repos : null, note: user ? `@${user.login}` : 'GitHub not connected' },
@@ -559,12 +576,6 @@ export default function App() {
             </section>
           )}
 
-          {activeTab === 'workspace' && (
-            <div className="workspace-tab-wrap">
-              <WorkspacePanel />
-            </div>
-          )}
-
           {activeTab === 'reports' && (
             <ReportsPanel
               totalDeps={totalDeps}
@@ -578,6 +589,8 @@ export default function App() {
             />
           )}
         </div>
+          </>
+        )}
       </main>
 
       <div className="hbd-toast-region" aria-live="polite">

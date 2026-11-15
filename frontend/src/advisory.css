@@ -183,3 +183,23 @@
 .hba-cmd code,
 .hbl-cmd code,
 .hb-term { font-variant-ligatures: none; font-feature-settings: 'liga' 0, 'calt' 0; }
+
+/* Terminal-style blocks stay dark in both themes. App.css paints every <code>/<pre>
+   light grey in light mode, which hid this light text, so reset it here. */
+[data-theme='light'] .hbx-cmd code,
+[data-theme='light'] .hba-cmd code,
+[data-theme='light'] .hbl-cmd code,
+[data-theme='light'] pre.hb-term,
+[data-theme='light'] .hb-term code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: #e8e7e3;
+}
+[data-theme='light'] .hbx-cmd,
+[data-theme='light'] .hba-cmd,
+[data-theme='light'] .hbl-cmd { background: #161616; border-color: #2a2a2a; }
+[data-theme='light'] pre.hb-term { color: #9a9a9a; }
+/* Same App.css light-mode <code> rule flattened the version pills. */
+[data-theme='light'] .hbx-versions .hbx-to { background: var(--hb-ink); color: var(--hb-paper); border: 0; }
+[data-theme='light'] .hbx-versions .hbx-from { background: transparent; color: var(--ss-muted); border: 1px solid var(--ss-border-strong); }
