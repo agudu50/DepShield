@@ -322,8 +322,26 @@ export default function App() {
       badge: user ? { text: 'Live', tone: 'live' } : undefined,
     },
     { id: 'scanner', label: 'Manual scan', icon: <FileCode size={14} /> },
-    { id: 'reports', label: 'Report', icon: <BarChart3 size={14} /> },
+    { id: 'reports', label: 'Report', icon: user ? <BarChart3 size={14} /> : <Lock size={14} /> },
   ]
+
+  /** Shown on tabs that need a connected GitHub account. */
+  function lockedPanel(title: string, body: string) {
+    return (
+      <section className="hbd-panel hbd-empty">
+        <div className="hbd-empty-art" aria-hidden="true">
+          <span className="hbd-empty-card c1" />
+          <span className="hbd-empty-card c2" />
+          <span className="hbd-empty-card c3"><Lock size={26} strokeWidth={1.5} /></span>
+        </div>
+        <h3 className="hbd-serif">{title}</h3>
+        <p>{body}</p>
+        <button type="button" className="hb-btn hb-btn-primary" onClick={() => setShowWorkspaceOnly(false)}>
+          <Github size={15} /> Connect GitHub
+        </button>
+      </section>
+    )
+  }
 
   const inDashboard = !loadingUser && !bootError && (Boolean(user) || showWorkspaceOnly)
 
@@ -442,7 +460,7 @@ export default function App() {
           <p className="hbd-page-sub">{meta.sub}</p>
         </header>
 
-        {activeTab !== 'telemetry' && (
+        {activeTab !== 'telemetry' && !(activeTab === 'reports' && !user) && (
           <StatCards
             stats={[
               { label: 'Public repositories', value: user ? user.public_repos : null, note: user ? `@${user.login}` : 'GitHub not connected' },
@@ -497,21 +515,10 @@ export default function App() {
               <LiveAuditMonitor notify={notify} />
             ) : (
               /* The stream can contain repository names from earlier sessions; only show it once signed in. */
-              <section className="hbd-panel hbd-empty">
-                <div className="hbd-empty-art" aria-hidden="true">
-                  <span className="hbd-empty-card c1" />
-                  <span className="hbd-empty-card c2" />
-                  <span className="hbd-empty-card c3"><Lock size={26} strokeWidth={1.5} /></span>
-                </div>
-                <h3 className="hbd-serif">Connect GitHub to see your audit stream</h3>
-                <p>
-                  The live stream shows which repositories and files your audits read. It’s only available once you’ve
-                  connected a GitHub account.
-                </p>
-                <button type="button" className="hb-btn hb-btn-primary" onClick={() => setShowWorkspaceOnly(false)}>
-                  <Github size={15} /> Connect GitHub
-                </button>
-              </section>
+              lockedPanel(
+                'Connect GitHub to see your audit stream',
+                'The live stream shows which repositories and files your audits read. It’s only available once you’ve connected a GitHub account.',
+              )
             ))}
 
           {activeTab === 'scanner' && (
@@ -602,18 +609,24 @@ export default function App() {
             </section>
           )}
 
-          {activeTab === 'reports' && (
-            <ReportsPanel
-              totalDeps={totalDeps}
-              checkedDeps={checkedDeps}
-              unpinned={unpinnedCount}
-              advisories={matchedVulns}
-              packagesAffected={packagesAffected}
-              source={sourceName}
-              report={agentReport ?? scan}
-              notify={notify}
-            />
-          )}
+          {activeTab === 'reports' &&
+            (user ? (
+              <ReportsPanel
+                totalDeps={totalDeps}
+                checkedDeps={checkedDeps}
+                unpinned={unpinnedCount}
+                advisories={matchedVulns}
+                packagesAffected={packagesAffected}
+                source={sourceName}
+                report={agentReport ?? scan}
+                notify={notify}
+              />
+            ) : (
+              lockedPanel(
+                'Connect GitHub to see your security report',
+                'The report summarizes your repository audits: coverage, matched advisories and how they were checked. It’s only available once you’ve connected a GitHub account.',
+              )
+            ))}
         </div>
           </>
         )}
