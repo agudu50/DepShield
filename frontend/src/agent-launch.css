@@ -493,3 +493,32 @@
 
 /* The launchpad/report cards carry their own frame; drop the pane's outer one. */
 .hb-dash .gh-analysis-pane { border: none; background: none; padding: 0; box-shadow: none; }
+
+/* ── Model availability (provider set up in Bifrost or not) ─── */
+.model-picker .ss-filter-pill.is-off { opacity: 0.55; display: inline-flex; align-items: center; gap: 5px; }
+.model-picker .ss-filter-pill.is-off.active { opacity: 1; }
+.model-chip.is-unavailable {
+  cursor: not-allowed;
+  opacity: 0.5;
+  border-style: dashed;
+}
+.model-chip.is-unavailable > span:not(.model-chip-badge) { text-decoration: line-through; text-decoration-color: var(--mp-muted); }
+.model-chip.is-unavailable:hover { transform: none; color: var(--mp-muted); border-color: var(--mp-border); }
+.model-chip-badge.off { border-style: dashed; opacity: 1; }
+.mp-note {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px dashed var(--mp-border);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--mp-muted);
+}
+.mp-note strong { color: var(--mp-text); }
+.mp-note code { font-family: var(--hb-mono, monospace); font-size: 0.76rem; }
+.mp-note.is-warn { color: var(--ss-danger, #f87171); border-color: currentColor; }
+.mp-note .hbd-link { margin-left: auto; }

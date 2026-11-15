@@ -131,13 +131,22 @@ export type AIModel = {
   name: string
   /** local = runs on your machine, free = free model id, free_tier = free key with rate limits */
   tier?: 'local' | 'free' | 'free_tier' | 'paid'
+  /** true = provider set up in Bifrost, false = not set up, null/undefined = couldn't check */
+  available?: boolean | null
 }
-export type AIModelCatalog = { default: string; fallbacks: string[]; models: AIModel[] }
+export type AIModelCatalog = {
+  default: string
+  fallbacks: string[]
+  models: AIModel[]
+  /** checked = every provider verified; partial = some unknown; unreachable = gateway didn't answer */
+  availability?: 'checked' | 'partial' | 'unreachable'
+}
 
-/** Models the backend allows; Bifrost routes each one by its "provider/" prefix. */
-export async function listAIModels(): Promise<AIModelCatalog | null> {
+/** Models the backend allows, each marked with whether its provider is set up in Bifrost. */
+export async function listAIModels(refresh = false): Promise<AIModelCatalog | null> {
   try {
-    const res = await fetch(`${getApiBase()}/api/v1/ai/models`, { signal: AbortSignal.timeout(5000) })
+    const qs = refresh ? '?refresh=true' : ''
+    const res = await fetch(`${getApiBase()}/api/v1/ai/models${qs}`, { signal: AbortSignal.timeout(8000) })
     return res.ok ? ((await res.json()) as AIModelCatalog) : null
   } catch {
     return null
