@@ -35,6 +35,7 @@ import StatCards from './components/dashboard/StatCards'
 import FindingsPanel from './components/dashboard/FindingsPanel'
 import ReportsPanel from './components/dashboard/ReportsPanel'
 import { exportFindingsCsv, exportJson, type Finding } from './components/dashboard/exporters'
+import { getAuditRun, subscribeAuditRun, type AuditRunState } from './components/auditSession'
 import WorkspacePanel from './WorkspacePanel'
 import { addTelemetryBatch } from './telemetry'
 import './App.css'
@@ -121,6 +122,22 @@ export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [toast, setToast] = useState<{ id: number; message: string } | null>(null)
   const notify = useCallback((message: string) => setToast({ id: Date.now(), message }), [])
+
+  // Audits run in the background; show progress on the Audit tab and announce the finish
+  // if you're looking at another tab.
+  const [auditRun, setAuditRun] = useState<AuditRunState>(getAuditRun)
+  const lastFinish = useRef(getAuditRun().finishedCount)
+  useEffect(
+    () =>
+      subscribeAuditRun((s) => {
+        setAuditRun(s)
+        if (s.finishedCount !== lastFinish.current) {
+          lastFinish.current = s.finishedCount
+          if (window.location.hash !== '#agent') notify(s.status === 'done' ? s.notice : s.error)
+        }
+      }),
+    [notify],
+  )
   useEffect(() => {
     if (!toast) return
     const t = window.setTimeout(() => setToast(null), 2600)
@@ -307,7 +324,18 @@ export default function App() {
   const packagesAffected = new Set(allFindings.map((f) => f.packageName)).size
 
   const tabs: DashTab<DashboardTab>[] = [
-    { id: 'agent', label: 'Audit', icon: <ShieldCheck size={14} /> },
+    {
+      id: 'agent',
+      label: 'Audit',
+      icon: <ShieldCheck size={14} />,
+      badge:
+        auditRun.status === 'running'
+          ? {
+              text: `${auditRun.runs.filter((r) => r.status === 'done' || r.status === 'failed').length}/${auditRun.runs.length}`,
+              tone: 'live',
+            }
+          : undefined,
+    },
     {
       id: 'findings',
       label: 'Findings',

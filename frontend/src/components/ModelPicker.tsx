@@ -66,9 +66,14 @@ export default function ModelPicker({ value, onChange }: ModelPickerProps) {
   const [probe, setProbe] = useState<{ model: string; result: BifrostHealth } | null>(null)
   const [probing, setProbing] = useState(false)
 
-  async function load(refresh: boolean) {
+  async function load(refresh: boolean, attempt = 0) {
     setChecking(true)
     const c = await listAIModels(refresh)
+    // One quiet retry covers the backend restarting (dev auto-reload) or a slow first response.
+    if (!c && attempt === 0) {
+      window.setTimeout(() => void load(refresh, 1), 2500)
+      return
+    }
     setChecking(false)
     setLoaded(true)
     if (!c) return
@@ -97,8 +102,18 @@ export default function ModelPicker({ value, onChange }: ModelPickerProps) {
 
   if (!catalog) {
     return (
-      <div className="model-picker model-picker-empty">
-        <Cpu size={14} /> {loaded ? 'Model list unavailable: start the backend to choose an AI model.' : 'Loading models…'}
+      <div className="model-picker model-picker-empty" role="status">
+        <Cpu size={14} />
+        {loaded ? (
+          <>
+            <span>Couldn’t load the model list from DepShield. Audits still work; the default model will be used.</span>
+            <button type="button" className="hbd-link" onClick={() => void load(false)} disabled={checking}>
+              {checking ? 'Retrying…' : 'Retry'}
+            </button>
+          </>
+        ) : (
+          <span>Loading models…</span>
+        )}
       </div>
     )
   }
@@ -158,7 +173,10 @@ export default function ModelPicker({ value, onChange }: ModelPickerProps) {
       {catalog.availability === 'unreachable' ? (
         <p className="mp-note is-warn" role="status">
           <AlertTriangle size={13} />
-          <span>Couldn’t reach Bifrost to check which providers are set up. Start the gateway, then re-check.</span>
+          <span>
+            Bifrost isn’t running at <code>localhost:8080</code>, so AI explanations are off. Audits still work from OSV.dev
+            data. Start it with <code>npx -y @maximhq/bifrost</code>, then re-check.
+          </span>
           <button type="button" className="hbd-link" onClick={() => void load(true)} disabled={checking}>
             {checking ? 'Checking…' : 'Re-check'}
           </button>

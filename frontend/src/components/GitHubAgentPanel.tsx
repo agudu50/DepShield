@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Database,
   Info,
   ExternalLink,
   FileCode,
@@ -36,7 +37,7 @@ import {
 import { addTelemetryBatch } from '../telemetry'
 import ModelPicker from './ModelPicker'
 import RepoSidebar from './RepoSidebar'
-import { getAuditSession } from './auditSession'
+import { getAuditRun, getAuditSession, startAudit, subscribeAuditRun, type AuditRunState } from './auditSession'
 import AdvisoryModal, { type AdvisoryTarget } from './AdvisoryModal'
 import RemediationList, { type VulnerablePackage } from './RemediationList'
 import {
@@ -45,7 +46,6 @@ import {
   groupByDir,
   mergeReports,
   recommendedSelection,
-  type ManifestRun,
 } from './manifestAudit'
 
 interface GitHubAgentPanelProps {
@@ -82,7 +82,10 @@ export default function GitHubAgentPanel({
   const [selectedManifests, setSelectedManifests] = useState<string[]>(() =>
     session.selectedRepo ? (session.selection.get(session.selectedRepo.full_name) ?? []) : [],
   )
-  const [runs, setRuns] = useState<ManifestRun[]>(() => session.runs)
+  // Audit progress lives in a background runner so it survives leaving this tab.
+  const [run, setRun] = useState<AuditRunState>(getAuditRun)
+  useEffect(() => subscribeAuditRun(setRun), [])
+  const runs = run.runs
   const [reportView, setReportView] = useState<string>(() => session.reportView)
   const [manifestReload, setManifestReload] = useState(0)
   const forceRescan = useRef(false)
@@ -94,9 +97,9 @@ export default function GitHubAgentPanel({
 
   const [aiModel, setAiModel] = useState<string | null>(null)
   const [loadingManifests, setLoadingManifests] = useState(false)
-  const [analyzing, setAnalyzing] = useState(false)
+  const analyzing = run.status === 'running'
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
+  const notice = run.notice
 
   // View state: 'launchpad' (manifests & trigger) vs 'report' (results)
   const [viewMode, setViewMode] = useState<'launchpad' | 'report'>(() =>
@@ -107,13 +110,12 @@ export default function GitHubAgentPanel({
   useEffect(() => {
     const s = getAuditSession(token)
     s.selectedRepo = selectedRepo
-    s.runs = runs
     s.question = question
     s.viewMode = viewMode
     s.reportView = reportView
     // Only save the selection once it belongs to this repo (not mid-switch).
     if (selectedRepo && manifestsFor.current === selectedRepo.full_name) s.selection.set(selectedRepo.full_name, selectedManifests)
-  }, [token, selectedRepo, runs, question, viewMode, reportView, selectedManifests])
+  }, [token, selectedRepo, question, viewMode, reportView, selectedManifests])
 
   // Findings table filter & pagination
   const [depFilter, setDepFilter] = useState<'all' | 'vuln' | 'clean'>('vuln')
@@ -192,57 +194,40 @@ export default function GitHubAgentPanel({
   }
 
   async function handleRunAgentAnalysis() {
-    if (!token || !selectedRepo || selectedManifests.length === 0) return
+    if (!token || !selectedRepo || selectedManifests.length === 0 || analyzing) return
     // Audit in discovery order so progress reads top-to-bottom like the list.
     const queue = manifests.map((m) => m.path).filter((p) => selectedManifests.includes(p))
     const repo = selectedRepo
     const [owner, repoName] = repo.full_name.split('/')
-
-    setAnalyzing(true)
     setError('')
-    setNotice('')
-    let current: ManifestRun[] = queue.map((path) => ({ path, status: 'pending' }))
-    setRuns(current)
-
-    for (const path of queue) {
-      current = current.map((r) => (r.path === path ? { ...r, status: 'running' } : r))
-      setRuns(current)
-      try {
-        const result = await analyzeGitHubRepo(token, owner, repoName, {
+    void startAudit({
+      token,
+      repo,
+      queue,
+      analyze: (path) =>
+        analyzeGitHubRepo(token, owner, repoName, {
           manifest_path: path,
           ref: repo.default_branch,
           question: question.trim() || undefined,
           model: aiModel ?? undefined,
-        })
-        current = current.map((r) => (r.path === path ? { ...r, status: 'done', report: result } : r))
-        addTelemetryBatch(auditTelemetry(repo.full_name, repo.default_branch, path, result))
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'This manifest couldn’t be audited.'
-        current = current.map((r) => (r.path === path ? { ...r, status: 'failed', error: message } : r))
-      }
-      setRuns(current)
-    }
+        }),
+      onEach: (path, result) => addTelemetryBatch(auditTelemetry(repo.full_name, repo.default_branch, path, result)),
+      merge: mergeReports,
+      onReport: setReport,
+    })
+  }
 
-    const ok = current.filter((r) => r.report).map((r) => ({ path: r.path, report: r.report! }))
-    const failed = current.filter((r) => r.status === 'failed')
-    const merged = mergeReports(ok)
-    setAnalyzing(false)
-
-    if (!merged) {
-      setError(failed[0]?.error ?? 'The audit couldn’t be completed. Please try again in a moment.')
-      return
-    }
-    setReport(merged)
+  // When a run finishes while this panel is open, jump to its report.
+  const seenFinish = useRef(run.finishedCount)
+  useEffect(() => {
+    if (run.finishedCount === seenFinish.current) return
+    seenFinish.current = run.finishedCount
+    if (run.status !== 'done') return
     setReportView('all')
     setViewMode('report')
-    setDepFilter(merged.vulnerability_count > 0 ? 'vuln' : 'all')
+    setDepFilter(run.lastAdvisories > 0 ? 'vuln' : 'all')
     setDepPage(1)
-    const files = `${ok.length} manifest${ok.length === 1 ? '' : 's'}`
-    setNotice(
-      `Audit complete for ${repo.full_name}: ${merged.vulnerability_count} advisor${merged.vulnerability_count === 1 ? 'y' : 'ies'} across ${files}.` +
-        (failed.length ? ` ${failed.length} file${failed.length === 1 ? '' : 's'} couldn’t be audited.` : ''),
-    )
-  }
+  }, [run.finishedCount, run.status, run.lastAdvisories])
 
   // Per-manifest results from this session (only while they belong to the current report)
   const finishedRuns = runs.filter((r) => r.report && report && r.report.repository === report.repository)
@@ -289,10 +274,10 @@ export default function GitHubAgentPanel({
   return (
     <div className="agent-panel-wrapper">
       <AdvisoryModal target={advisory} onClose={() => setAdvisory(null)} />
-      {error && (
+      {(error || run.error) && (
         <div className="alert-banner alert-error" role="alert">
           <AlertTriangle size={18} />
-          <span>{error}</span>
+          <span>{error || run.error}</span>
         </div>
       )}
 
@@ -434,7 +419,7 @@ export default function GitHubAgentPanel({
               {/* Agent Intelligence Box */}
               <div className="agent-summary-box">
                 <div className="agent-box-title">
-                  <Sparkles size={16} />
+                  {viewReport.summary_source === 'bifrost' ? <Sparkles size={16} /> : <Database size={16} />}
                   <h4>{viewReport.summary_source === 'bifrost' ? 'Bifrost AI Analysis' : 'OSV Summary'}</h4>
                   {viewReport.summary_source === 'bifrost' ? (
                     <span className="provenance-chip live" title={viewReport.gateway_response_id ?? undefined}>
@@ -442,12 +427,21 @@ export default function GitHubAgentPanel({
                       {viewReport.ai_usage?.total_tokens ? ` · ${viewReport.ai_usage.total_tokens} tok` : ''}
                     </span>
                   ) : (
-                    <span className="provenance-chip fallback">
+                    <span
+                      className="provenance-chip fallback"
+                      title={
+                        viewReport.vulnerability_count === 0
+                          ? 'No advisories matched, so there was nothing for the AI to explain.'
+                          : viewReport.summary_fallback_reason === 'bifrost_not_configured'
+                            ? 'BIFROST_BASE_URL isn’t set on the backend, so AI explanations are off.'
+                            : 'The Bifrost gateway didn’t answer (is it running at localhost:8080?). Findings below still come straight from OSV.dev.'
+                      }
+                    >
                       {viewReport.vulnerability_count === 0
                         ? 'No AI needed: no advisories'
                         : viewReport.summary_fallback_reason === 'bifrost_not_configured'
-                          ? 'Bifrost not configured'
-                          : 'Bifrost unreachable: no AI output'}
+                          ? 'No AI summary · Bifrost not set up'
+                          : 'No AI summary · Bifrost offline'}
                     </span>
                   )}
                 </div>

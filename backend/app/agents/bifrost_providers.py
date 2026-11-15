@@ -14,12 +14,14 @@ from urllib.parse import quote, urlsplit
 import httpx
 
 CACHE_TTL_SECONDS = 30.0
+# A dead gateway is re-checked sooner, so starting Bifrost shows up quickly.
+UNREACHABLE_TTL_SECONDS = 8.0
 # Providers that legitimately run without an API key (configured by URL instead).
 KEYLESS_PROVIDERS = {"ollama", "sgl", "vllm"}
 
 Availability = Literal["checked", "partial", "unreachable"]
 
-_cache: dict[str, tuple[float, Availability, dict[str, bool | None]]] = {}
+_cache: dict[str, tuple[float, float, Availability, dict[str, bool | None]]] = {}
 
 
 def gateway_root(base_url: str) -> str:
@@ -37,8 +39,8 @@ async def provider_availability(
     unique = sorted(set(providers))
     key = f"{gateway_root(base_url)}|{','.join(unique)}"
     hit = _cache.get(key)
-    if hit and time.monotonic() - hit[0] < CACHE_TTL_SECONDS:
-        return hit[1], hit[2]
+    if hit and time.monotonic() - hit[0] < hit[1]:
+        return hit[2], hit[3]
 
     root = gateway_root(base_url)
     unreachable = False
@@ -63,7 +65,8 @@ async def provider_availability(
             return False  # provider entry exists but has no API key
         return True
 
-    async with httpx.AsyncClient(timeout=3.0, transport=transport) as client:
+    # Short connect timeout: a stopped gateway should cost ~1s, not several.
+    async with httpx.AsyncClient(timeout=httpx.Timeout(3.0, connect=1.0), transport=transport) as client:
         results = await asyncio.gather(*(check(client, p) for p in unique))
 
     by_provider = dict(zip(unique, results))
@@ -73,9 +76,8 @@ async def provider_availability(
         status = "partial"
     else:
         status = "checked"
-    # Don't cache a total failure for long: the user is probably starting the gateway right now.
-    if status != "unreachable":
-        _cache[key] = (time.monotonic(), status, by_provider)
+    ttl = UNREACHABLE_TTL_SECONDS if status == "unreachable" else CACHE_TTL_SECONDS
+    _cache[key] = (time.monotonic(), ttl, status, by_provider)
     return status, by_provider
 
 
