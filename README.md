@@ -9,6 +9,8 @@
 
 ### An Agent Powered by Bifrost by Maxim AI
 
+**Live Web Application:** [https://depshield-27ul.onrender.com](https://depshield-27ul.onrender.com)
+
 ---
 
 ## What is DepShield AI?
@@ -318,21 +320,31 @@ DepShield/
 ├── backend/                  # FastAPI Python backend
 │   ├── app/
 │   │   ├── agents/bifrost.py # Bifrost by Maxim AI client integration
-│   │   ├── api/routes/       # API endpoints (github, scans, agent, health)
+│   │   ├── api/routes/       # API endpoints (github, scans, agent, health, metrics)
 │   │   ├── domain/           # Core scanning and repository logic
+│   │   ├── site_metrics.py   # Anonymous public visits and aggregate audit counters
 │   │   └── main.py           # Application entrypoint
+│   ├── alembic/              # Database schema migrations
+│   ├── tests/                # Grounding & anti-hallucination unit tests
+│   └── README.md             # Backend service documentation
 ├── frontend/                 # React 19 + Vite web dashboard
 │   ├── src/
 │   │   ├── components/
 │   │   │   ├── GitHubLoginGate.tsx  # Landing page, guides, and zero-leak proof
 │   │   │   ├── GitHubAgentPanel.tsx # Target selection and autonomous audit
-│   │   │   └── LiveAuditMonitor.tsx # Real-time agent activity & telemetry stream
+│   │   │   ├── LiveAuditMonitor.tsx # Real-time agent activity & telemetry stream
+│   │   │   ├── SiteMetrics.tsx      # Public telemetry counters ribbon
+│   │   │   └── dashboard/           # Findings panel, reports, and export tools
 │   │   ├── App.tsx                  # Main application shell and tabs
+│   │   ├── siteMetrics.ts           # Anonymous visit tracking client
 │   │   └── App.css                  # Modern Seesaw-inspired flat design (zero gradients)
+│   └── README.md             # Frontend dashboard documentation
 ├── cli/                      # Developer command-line tool (`depshield`)
 │   ├── depshield_cli/
 │   │   ├── github.py         # Terminal GitHub integration & audit commands
 │   │   └── main.py           # Preflight installation gates and background monitor
+│   └── README.md             # CLI reference guide
+├── render.yaml               # Infrastructure-as-code blueprint for Render deployment
 ├── backend.cmd               # Quick-start script for Windows
 ├── run-backend.ps1           # Quick-start PowerShell script
 ├── CONTRIBUTING.md           # Contribution guidelines and testing workflows
@@ -380,10 +392,11 @@ DepShield includes a pre-configured `render.yaml` blueprint to deploy the FastAP
 - **Environment Variables:**
   - `PYTHON_VERSION`: `3.12.0`
   - `ENVIRONMENT`: `production`
-  - `CORS_ORIGINS`: `*` (or your frontend Render URL)
-  * `DATABASE_URL`: PostgreSQL connection string (from Render Postgres or Neon)
-  * `BIFROST_BASE_URL`: (Optional) Your Bifrost AI gateway endpoint
-  * `BIFROST_VIRTUAL_KEY`: (Optional) Virtual key for Bifrost
+  - `CORS_ORIGINS`: `https://depshield-27ul.onrender.com` (accepts plain string URL, comma-separated list, or `*`)
+  - `DATABASE_URL`: PostgreSQL connection string (from Render Postgres or Neon)
+  - `DATABASE_URL_UNPOOLED`: Direct PostgreSQL connection string (for Alembic migrations)
+  - `BIFROST_BASE_URL`: (Optional) Your Bifrost AI gateway endpoint
+  - `BIFROST_VIRTUAL_KEY`: (Optional) Virtual key for Bifrost
 
 #### 2. Deploy the Frontend (Static Site)
 - **Service Type:** Static Site
@@ -395,4 +408,6 @@ DepShield includes a pre-configured `render.yaml` blueprint to deploy the FastAP
   - Destination: `/index.html`
   - Action: `Rewrite`
 - **Environment Variables:**
-  - `VITE_API_BASE_URL`: `https://your-backend-service-name.onrender.com` (replace with your live backend Render URL)
+  - `VITE_API_BASE_URL`: `https://your-backend-service-name.onrender.com` (replace with your live backend Render URL; trailing slashes are automatically handled)
+
+*(Note: If deploying the frontend as a Web Service instead of a Static Site, the included `npm start` script runs `vite preview --host 0.0.0.0 --port ${PORT:-5173}` automatically).*

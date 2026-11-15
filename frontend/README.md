@@ -1,6 +1,8 @@
-# DepShield AI — Frontend Dashboard
+# DepShield AI - Frontend Dashboard
 
-DepShield's frontend is a React + TypeScript single-page application built on Vite and styled with a modern, flat, Seesaw-inspired developer tool design system (zero gradients, clean solid surfaces, high contrast, and crisp information density).
+DepShield frontend is a React 19 + TypeScript single-page application built on Vite and styled with a modern, flat, Seesaw-inspired developer tool design system (zero gradients, clean solid surfaces, high contrast, and crisp information density).
+
+Live Demo: https://depshield-27ul.onrender.com
 
 The dashboard connects to the DepShield FastAPI backend to audit dependency manifests, query authoritative OSV.dev advisories, and present evidence-grounded AI investigations from the Bifrost gateway.
 
@@ -26,12 +28,20 @@ frontend/src/
 ├── components/
 │   ├── GitHubLoginGate.tsx       # Landing page with Web vs CLI guide & zero-exfiltration proof
 │   ├── GitHubAgentPanel.tsx      # Repository explorer, manifest detection, and agent audit report
-│   └── LiveAuditMonitor.tsx      # Real-time CLI & Agent activity stream and privacy assurance
-├── api.ts                        # Typed REST API client (GitHub, Scans, Manifests)
+│   ├── LiveAuditMonitor.tsx      # Real-time CLI & Agent activity stream and privacy assurance
+│   ├── SiteMetrics.tsx           # Anonymous public counters and live activity ribbon
+│   ├── SourcesStrip.tsx          # Upstream security data source attribution
+│   ├── WorkflowSection.tsx       # Interactive step-by-step audit walkthrough
+│   ├── LanyardBadge.tsx          # Real-time developer presence indicator
+│   └── dashboard/                # Findings panel, reports, and export helpers
+├── api.ts                        # Typed REST API client (GitHub, Scans, Manifests, Metrics)
 ├── auth.ts                       # Neon Managed Auth client (Better Auth)
-├── App.tsx                       # Main shell, dashboard stats ribbon, and modular tab navigation
+├── siteMetrics.ts                # Anonymous visitor telemetry (respects DNT / GPC)
+├── App.tsx                       # Main shell, dashboard ribbon, and modular tab navigation
 ├── WorkspacePanel.tsx            # Multi-tenant workspace, projects, and invitations
 ├── App.css                       # Solid flat design system & responsive styling
+├── landing-seesaw.css            # Landing page typography and interactive layout
+├── workflow.css                  # Workflow component and metrics styling
 └── main.tsx                      # Vite React application entrypoint
 ```
 
@@ -41,14 +51,15 @@ frontend/src/
    * Interactive **How to Use** guide comparing the **Web App (Browser)** vs **Developer CLI (Terminal)** workflows.
    * **Zero-Exfiltration Guarantee**: Explicitly verifies that only manifest files are read; proprietary source code (`.ts`, `.py`, `.js`, `.env`) is never opened, read into memory, or uploaded.
    * **Interactive Live Audit Preview**: Demonstrates timestamped telemetry events, verifying that zero code is leaked and only stateless `(package, version)` queries reach OSV.dev.
+   * **Anonymous Public Metrics**: Live counter of manifests audited, packages checked, advisories found, and active sessions.
 2. **Dashboard Overview**: Displays live stats for connected repositories, total audited dependencies, active OSV advisories, and exact verified versions.
 3. **Six Modular Tabs**:
-   * 🚀 **AI Agent & Repos**: Search and choose any GitHub repository, inspect discovered dependency manifests, specify agent prompts, and trigger one-click vulnerability audits.
-   * 🛡️ **Verified Findings**: Expandable list of detected OSV advisories with CVE/GHSA aliases, severity ratings, and fix paths.
-   * 📡 **Live Audit Stream**: Real-time telemetry feed of all file checks, OSV.dev queries, preflight blocks, and CLI monitor synchronization.
-   * 📄 **Manual Scanner**: Paste raw npm `package.json` / `package-lock.json` or Python `requirements.txt` / `uv.lock` manifests for quick stateless checks.
-   * 👥 **Workspace & Team**: Neon Auth organization management, member invitations, and CLI token authorization.
-   * 📊 **Security Reports**: High-level posture indicators, exact version coverage percentage, and deterministic pipeline principles.
+   * **AI Agent & Repos**: Search and choose any GitHub repository, inspect discovered dependency manifests, specify agent prompts, and trigger one-click vulnerability audits with post-audit sorting.
+   * **Verified Findings**: Expandable list of detected OSV advisories with CVE/GHSA aliases, severity ratings, and fix paths.
+   * **Live Audit Stream**: Real-time telemetry feed of all file checks, OSV.dev queries, preflight blocks, and CLI monitor synchronization.
+   * **Manual Scanner**: Paste raw npm `package.json` / `package-lock.json` or Python `requirements.txt` / `uv.lock` manifests for quick stateless checks.
+   * **Workspace & Team**: Neon Auth organization management, member invitations, and CLI token authorization.
+   * **Security Reports**: High-level posture indicators, exact version coverage percentage, and deterministic pipeline principles.
 
 ---
 
@@ -92,3 +103,24 @@ npm run build
 # Preview production build locally
 npm run preview
 ```
+
+---
+
+## Render Deployment (Static Site)
+
+1. Create a new **Static Site** on Render.
+2. Set **Root Directory** to `frontend`.
+3. Set **Build Command** to:
+   ```bash
+   npm install --include=dev && npm run build
+   ```
+4. Set **Publish Directory** to `dist`.
+5. Add a Single Page Application rewrite rule under **Redirects/Rewrites**:
+   - Source: `/*`
+   - Destination: `/index.html`
+   - Action: `Rewrite`
+6. Add environment variable:
+   ```env
+   VITE_API_BASE_URL=https://<your-backend-slug>.onrender.com
+   ```
+   *(Trailing slashes are automatically sanitized by the frontend API client).*
