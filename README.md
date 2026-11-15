@@ -350,4 +350,49 @@ DepShield AI turns vulnerability management into an autonomous, transparent secu
 - **Agent**: Discovers packages, probes attack surfaces, and verifies vulnerabilities.
 - **Brain**: **Bifrost by Maxim AI** analyzes risks, evaluates reachability, and builds safe upgrade plans.
 - **Promise**: 100% deterministic security facts, zero code theft, and clear, simple answers.
-- **Promise**: 100% deterministic security facts, zero code theft, and clear, simple answers.
+
+---
+
+## Deploying to Render
+
+DepShield includes a pre-configured `render.yaml` blueprint to deploy the FastAPI backend, PostgreSQL database, and React frontend together.
+
+### Option 1: Automated Blueprint Deploy (Recommended)
+1. Push your latest commits to GitHub.
+2. Go to the [Render Dashboard](https://dashboard.render.com/).
+3. Click **New +** in the top navigation and select **Blueprint**.
+4. Connect your `DepShield` repository.
+5. Render automatically detects `render.yaml` and provisions:
+   - `depshield-backend`: Python FastAPI web service with automatic Alembic migrations.
+   - `depshield-frontend`: React static site with SPA rewrite rules and linked backend URL.
+   - `depshield-db`: PostgreSQL database on Render's free tier.
+6. Click **Apply** to start deployment.
+
+### Option 2: Manual Setup on Render
+
+#### 1. Deploy the Backend (Web Service)
+- **Service Type:** Web Service
+- **Root Directory:** `backend`
+- **Runtime:** Python
+- **Build Command:** `pip install -r requirements.txt`
+- **Start Command:** `sh -c 'if [ -n "$DATABASE_URL" ]; then alembic upgrade head; fi && uvicorn app.main:app --host 0.0.0.0 --port $PORT'`
+- **Health Check Path:** `/health`
+- **Environment Variables:**
+  - `PYTHON_VERSION`: `3.12.0`
+  - `ENVIRONMENT`: `production`
+  - `CORS_ORIGINS`: `*` (or your frontend Render URL)
+  * `DATABASE_URL`: PostgreSQL connection string (from Render Postgres or Neon)
+  * `BIFROST_BASE_URL`: (Optional) Your Bifrost AI gateway endpoint
+  * `BIFROST_VIRTUAL_KEY`: (Optional) Virtual key for Bifrost
+
+#### 2. Deploy the Frontend (Static Site)
+- **Service Type:** Static Site
+- **Root Directory:** `frontend`
+- **Build Command:** `npm install && npm run build`
+- **Publish Directory:** `dist`
+- **Redirects / Rewrites:**
+  - Source: `/*`
+  - Destination: `/index.html`
+  - Action: `Rewrite`
+- **Environment Variables:**
+  - `VITE_API_BASE_URL`: `https://your-backend-service-name.onrender.com` (replace with your live backend Render URL)

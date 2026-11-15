@@ -97,7 +97,8 @@ const MANIFEST_LOOKUP: Record<string, [Ecosystem, 'manifest' | 'lockfile']> = {
 }
 
 function getApiBase(): string {
-  return import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
+  const url = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
+  return url.replace(/\/+$/, '')
 }
 
 function cleanToken(token: string): string {
