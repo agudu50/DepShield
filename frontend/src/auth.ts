@@ -1,5 +1,6 @@
 import { createAuthClient } from '@neon/neon-js/auth'
 import { BetterAuthReactAdapter } from '@neon/neon-js/auth/react/adapters'
+import { apiBase } from './apiBase'
 
 const authUrl = import.meta.env.VITE_NEON_AUTH_URL?.trim()
 
@@ -28,8 +29,7 @@ export async function authenticatedApiRequest<T>(
     throw new Error('Sign in before using organization features')
   }
 
-  const apiBase = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000').replace(/\/+$/, '')
-  const response = await fetch(`${apiBase}${path}`, {
+  const response = await fetch(`${apiBase()}${path}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',

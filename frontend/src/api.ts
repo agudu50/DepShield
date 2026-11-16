@@ -1,3 +1,4 @@
+import { apiBase } from './apiBase'
 export type Ecosystem = 'npm' | 'python'
 
 export type ScanResponse = {
@@ -96,10 +97,7 @@ const MANIFEST_LOOKUP: Record<string, [Ecosystem, 'manifest' | 'lockfile']> = {
   'Pipfile.lock': ['python', 'lockfile'],
 }
 
-function getApiBase(): string {
-  const url = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
-  return url.replace(/\/+$/, '')
-}
+const getApiBase = apiBase
 
 function cleanToken(token: string): string {
   return token.trim().replace(/[\r\n\t]/g, '')

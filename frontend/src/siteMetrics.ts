@@ -1,3 +1,4 @@
+import { apiBase } from './apiBase'
 /**
  * Anonymous, public site metrics.
  * A visitor is a random UUID kept in this browser; nothing else identifies you.
@@ -17,7 +18,7 @@ export type SiteSummary = {
 }
 
 const KEY = 'depshield_visitor_id'
-const api = () => import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
+const api = apiBase
 
 export function trackingAllowed(): boolean {
   const nav = navigator as Navigator & { globalPrivacyControl?: boolean; msDoNotTrack?: string }
