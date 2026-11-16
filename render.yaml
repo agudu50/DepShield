@@ -29,8 +29,6 @@ services:
   - type: web
     name: depshield-frontend
     runtime: static
-    plan: free
-    region: oregon
     rootDir: frontend
     buildCommand: npm install --include=dev && npm run build
     staticPublishPath: dist
@@ -39,11 +37,11 @@ services:
         source: /*
         destination: /index.html
     envVars:
+      # Baked into the JS bundle at build time. Set it to the backend's public URL,
+      # e.g. https://depshield-backend.onrender.com (RENDER_EXTERNAL_URL is runtime-only
+      # and can't be referenced via fromService, which left this empty -> localhost:8000).
       - key: VITE_API_BASE_URL
-        fromService:
-          type: web
-          name: depshield-backend
-          envVarKey: RENDER_EXTERNAL_URL
+        sync: false
 
 databases:
   # ─── Managed PostgreSQL (Render Free Tier) ──────────────────────────
